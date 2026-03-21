@@ -15,19 +15,16 @@ const createTransporter = () => {
     throw new Error("Missing EMAIL_USER or EMAIL_PASS");
   }
 
+  console.log("Using SMTP host:", "smtp.gmail.com");
+  console.log("Using SMTP port:", 587);
+
   return nodemailer.createTransport({
-    host: "smtp-relay.brevo.com",
+    host: "smtp.gmail.com",
     port: 587,
     secure: false,
-    requireTLS: true,
     auth: {
       user,
       pass
-    },
-    tls: {
-      servername: "smtp-relay.brevo.com",
-      minVersion: "TLSv1.2",
-      rejectUnauthorized: true
     },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
