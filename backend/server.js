@@ -1,5 +1,4 @@
 const path = require("path");
-require("dotenv").config();
 const dotenvResult = require("dotenv").config({ path: path.resolve(__dirname, ".env") });
 const express = require("express");
 const cors = require("cors");
@@ -19,18 +18,47 @@ if (dotenvResult.error) {
   console.log("[ENV] Loaded environment variables from backend/.env");
 }
 
+const requiredEnvVars = ["MONGO_URI", "JWT_SECRET", "EMAIL_USER", "EMAIL_PASS"];
+const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
+if (missingEnvVars.length > 0) {
+  console.error("[ENV] Missing required variables:", missingEnvVars.join(", "));
+}
+
 console.log("[ENV] OTP email config status", {
   hasEmailUser: Boolean(process.env.EMAIL_USER || process.env.GMAIL_USER || process.env.SMTP_USER),
   hasEmailPass: Boolean(process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS),
   smtpFromConfigured: Boolean(process.env.SMTP_FROM || process.env.EMAIL_FROM)
 });
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://road-complaint-and-monitoring-system.onrender.com"
+];
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    console.error("[CORS] Blocked origin:", origin);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  credentials: true
+};
+
 // create uploads folder if missing (multer doesn't auto-create it)
 if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads");
 }
 
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 

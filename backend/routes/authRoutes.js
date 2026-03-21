@@ -3,11 +3,11 @@ require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const User = require("../models/User");
 const EmailVerification = require("../models/EmailVerification");
 const authMiddleware = require("../middleware/authMiddleware");
+const { sendOtpEmail } = require("../config/email");
 
 const router = express.Router();
 const OTP_EXPIRY_MINUTES = 5;
@@ -52,40 +52,9 @@ const isHashMatch = (a, b) => {
   return crypto.timingSafeEqual(left, right);
 };
 
-const sendOTP = async (toEmail, otp) => {
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
-
-  if (!emailUser || !emailPass) {
-    throw new Error("Missing EMAIL_USER or EMAIL_PASS in backend/.env");
-  }
-
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: emailUser,
-      pass: emailPass
-    }
-  });
-
-  await transporter.verify();
-
-  const info = await transporter.sendMail({
-    from: emailUser,
-    to: toEmail,
-    subject: "OTP Verification",
-    text: `Your OTP is ${otp}. It will expire in ${OTP_EXPIRY_MINUTES} minutes.`
-  });
-
-  return info;
-};
-
 router.post("/send-otp", async (req, res) => {
   try {
-    console.log("REQ BODY:", req.body);
     const normalizedEmail = normalizeEmail(req.body?.email);
-
-    console.log("ENV CHECK:", process.env.EMAIL_USER, process.env.EMAIL_PASS ? "APP_PASSWORD_SET" : undefined);
 
     if (!normalizedEmail) {
       return res.status(400).json({
@@ -132,7 +101,11 @@ router.post("/send-otp", async (req, res) => {
     }
 
     const otp = generateOtp();
-    await sendOTP(normalizedEmail, otp);
+    await sendOtpEmail({
+      toEmail: normalizedEmail,
+      otp,
+      expiryMinutes: OTP_EXPIRY_MINUTES
+    });
 
     const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
@@ -158,7 +131,11 @@ router.post("/send-otp", async (req, res) => {
       expiresInSeconds: OTP_EXPIRY_MINUTES * 60
     });
   } catch (error) {
-    console.log("REAL ERROR:", error);
+    console.error("[SEND_OTP_ROUTE] Failed", {
+      message: error.message,
+      code: error.code,
+      stack: process.env.NODE_ENV === "production" ? undefined : error.stack
+    });
 
     return res.status(500).json({
       message: "Failed to send OTP",
