@@ -25,16 +25,18 @@ if (missingEnvVars.length > 0) {
 }
 
 console.log("[ENV] OTP email config status", {
-  hasEmailUser: Boolean(process.env.EMAIL_USER || process.env.GMAIL_USER || process.env.SMTP_USER),
-  hasEmailPass: Boolean(process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS),
-  smtpFromConfigured: Boolean(process.env.SMTP_FROM || process.env.EMAIL_FROM)
+  hasEmailUser: Boolean(process.env.EMAIL_USER),
+  hasEmailPass: Boolean(process.env.EMAIL_PASS),
+  smtpFromConfigured: Boolean(process.env.SMTP_FROM)
 });
 
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
+  process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL_2,
   "https://road-complaint-and-monitoring-system.onrender.com"
-];
+].filter(Boolean);
 
 const corsOptions = {
   origin(origin, callback) {
@@ -59,6 +61,7 @@ if (!fs.existsSync("uploads")) {
 }
 
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 

@@ -1,9 +1,9 @@
 const nodemailer = require("nodemailer");
 
 const getEmailAuth = () => {
-  const user = process.env.EMAIL_USER || process.env.GMAIL_USER || process.env.SMTP_USER;
-  const pass = process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || (user ? `Road Project <${user}>` : undefined);
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
+  const from = process.env.SMTP_FROM || (user ? `Road Complaint <${user}>` : undefined);
 
   return { user, pass, from };
 };
@@ -12,21 +12,20 @@ const createTransporter = () => {
   const { user, pass } = getEmailAuth();
 
   if (!user || !pass) {
-    throw new Error("Missing EMAIL_USER/EMAIL_PASS (or compatibility SMTP/GMAIL vars)");
+    throw new Error("Missing EMAIL_USER or EMAIL_PASS");
   }
 
   return nodemailer.createTransport({
-    host: "smtp.gmail.com",
+    host: "smtp-relay.brevo.com",
     port: 587,
     secure: false,
     requireTLS: true,
-    family: 4,
     auth: {
       user,
       pass
     },
     tls: {
-      servername: "smtp.gmail.com",
+      servername: "smtp-relay.brevo.com",
       minVersion: "TLSv1.2",
       rejectUnauthorized: true
     },
