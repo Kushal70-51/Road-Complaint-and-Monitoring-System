@@ -74,8 +74,14 @@ export const authService = {
         data: error?.response?.data,
         message: error?.message
       });
-      const message = error?.response?.data?.error || error?.response?.data?.message || error.message || 'Failed to send OTP';
-      throw new Error(message);
+      const backend = error?.response?.data || {};
+      const message = backend?.details || backend?.error || backend?.message || error.message || 'Failed to send OTP';
+      const code = backend?.code ? ` (${backend.code})` : '';
+      const debug = backend?.resendApiKey || backend?.resendFrom
+        ? ` [resendApiKey=${backend.resendApiKey || "NA"}, resendFrom=${backend.resendFrom || "NA"}]`
+        : '';
+      const finalMessage = `${message}${code}${debug}`;
+      throw new Error(finalMessage);
     }
   },
 

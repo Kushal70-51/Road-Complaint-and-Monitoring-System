@@ -106,10 +106,13 @@ const sendOtpEmail = async ({ toEmail, otp, expiryMinutes = 5 }) => {
     try {
       return await sendViaResend({ toEmail, otp, expiryMinutes });
     } catch (error) {
-      console.warn("[EMAIL] Resend path failed, falling back to SMTP", {
+      console.warn("[EMAIL] Resend path failed", {
         code: error.code,
         message: error.message
       });
+      // Do not fall back to SMTP when RESEND_API_KEY is configured.
+      // SMTP can be blocked in cloud and would hide the real Resend error.
+      throw error;
     }
   }
 
