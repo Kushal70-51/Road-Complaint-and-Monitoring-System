@@ -122,8 +122,21 @@ const start = async () => {
   });
 
   // SPA fallback - serve index.html for all non-API routes (for React Router)
-  app.get("*", (req, res) => {
+  // This must come AFTER all API routes
+  app.use((req, res, next) => {
+    // Skip if it's an API route
+    if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) {
+      return next();
+    }
+
+    // Skip if it's a static file that exists
+    if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/i)) {
+      return next();
+    }
+
+    // Serve index.html for all other routes
     const indexPath = path.join(frontendBuildPath, "index.html");
+    console.log("[SPA] Serving index.html for route:", req.path);
     res.sendFile(indexPath, (err) => {
       if (err) {
         console.error("[SPA] Error serving index.html:", err);
