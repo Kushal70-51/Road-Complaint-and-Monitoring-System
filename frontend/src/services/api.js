@@ -13,7 +13,8 @@ const getAuthToken = () => {
     return "";
   }
 
-  const cleaned = String(rawToken).trim().replace(/^"|"$/g, "");
+  let cleaned = String(rawToken).trim().replace(/^"|"$/g, "");
+  cleaned = cleaned.replace(/^Bearer\s+/i, "").trim();
   if (!cleaned || cleaned === "null" || cleaned === "undefined") {
     return "";
   }

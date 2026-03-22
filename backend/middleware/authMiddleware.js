@@ -3,9 +3,10 @@ const jwt = require("jsonwebtoken");
 function authMiddleware(req, res, next) {
   const authHeader = (req.header("Authorization") || "").trim();
   const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
-  const token = String(bearerMatch ? bearerMatch[1] : authHeader)
+  let token = String(bearerMatch ? bearerMatch[1] : authHeader)
     .trim()
     .replace(/^"|"$/g, "");
+  token = token.replace(/^Bearer\s+/i, "").trim();
 
   if (!token || token === "null" || token === "undefined") {
     return res.status(401).json({ error: "No token provided" });
