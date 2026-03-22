@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState } from 'react';
 import { adminService, API_BASE_URL } from '../services/api';
-import { AuthContext } from '../context/AuthContext';
-import { useLocation } from 'react-router-dom';
 import ComplaintLocationMap from '../components/ComplaintLocationMap';
 import './adminDashboard.css';
 
@@ -18,20 +16,6 @@ const AdminDashboard = () => {
   const handleChange = e => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
-
-  const { user } = useContext(AuthContext);
-  const location = useLocation();
-
-  // prevent browser back-navigation from leaving admin pages while logged-in
-  useEffect(() => {
-    if (!(user && user.role)) return;
-    try { window.history.pushState(null, '', location.pathname); } catch (e) {}
-    const onPop = () => {
-      try { window.history.pushState(null, '', location.pathname); } catch (e) {}
-    };
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-  }, [user, location.pathname]);
 
   const clearFilters = () => {
     setFilters({ location: '', status: '' });

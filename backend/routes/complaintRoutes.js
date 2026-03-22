@@ -8,18 +8,8 @@ const User = require("../models/User");
 
 const router = express.Router();
 
-const uploadsDir = path.join(__dirname, "../uploads");
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
-  }
-});
+const cloudinary = require("../config/cloudinary");
+const storage = multer.memoryStorage();
 
 const upload = multer({ storage });
 
@@ -117,9 +107,33 @@ router.post("/upload", authMiddleware, upload.single("image"), async (req, res) 
       }
     }
 
+    let imageUrl = null;
+    
+    if (req.file) {
+      try {
+        const uploadResult = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { 
+              folder: "road_complaints",
+              resource_type: "auto"
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          uploadStream.end(req.file.buffer);
+        });
+        imageUrl = uploadResult.secure_url;
+      } catch (cloudinaryError) {
+        console.error("Cloudinary upload error:", cloudinaryError);
+        return res.status(400).json({ error: "Image upload failed" });
+      }
+    }
+
     const complaint = await Complaint.create({
       user: userId,
-      image: req.file?.filename,
+      image: imageUrl,
       location,
       description,
       severity: severity || "Medium",

@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { adminService } from '../services/api';
 import './adminDashboard.css';
@@ -345,7 +346,7 @@ const AdminProfile = () => {
       )}
 
       <div className="view-complaints-button">
-        <a href="/admin" className="btn btn-primary">Go to Complaint Dashboard</a>
+        <Link to="/admin" className="btn btn-primary">Go to Complaint Dashboard</Link>
       </div>
     </div>
   );

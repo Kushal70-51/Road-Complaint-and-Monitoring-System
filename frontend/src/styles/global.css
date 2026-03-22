@@ -12,11 +12,24 @@ html, body {
   height: 100%;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body { 
   font-family: 'Segoe UI', 'Roboto', Arial, sans-serif; 
   color: #333; 
   line-height: 1.6;
   background: #f5f5f5;
+  overflow-x: hidden;
+}
+
+img,
+video,
+canvas,
+svg,
+iframe {
+  max-width: 100%;
 }
 
 #root {
@@ -2293,6 +2306,10 @@ footer {
    RESPONSIVE DESIGN
    ======================================== */
 @media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+
   .header-container {
     flex-direction: column;
     text-align: center;
@@ -2378,6 +2395,11 @@ footer {
   .container,
   .container-sm,
   .container-lg {
+    padding: 1rem;
+  }
+
+  .admin-dashboard,
+  .complaint-detail-page {
     padding: 1rem;
   }
 
@@ -2472,6 +2494,13 @@ footer {
     overflow-x: auto;
   }
 
+  table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   table th,
   table td {
     padding: 0.75rem;
@@ -2480,6 +2509,16 @@ footer {
 }
 
 @media (max-width: 480px) {
+  .chat-widget {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .chat-window {
+    width: min(92vw, 320px);
+    max-height: 70vh;
+  }
+
   .header-text h1 {
     font-size: 1rem;
   }

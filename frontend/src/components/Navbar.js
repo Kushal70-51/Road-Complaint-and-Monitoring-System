@@ -44,7 +44,7 @@ const Navbar = () => {
           ☰
         </button>
 
-        <ul className={`nav-menu ${isMobileMenuOpen ? 'open' : ''}`}>
+        <ul className={`nav-menu ${isMobileMenuOpen ? 'open' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>
           {!isAuthenticated ? (
             // not logged in
             <>
