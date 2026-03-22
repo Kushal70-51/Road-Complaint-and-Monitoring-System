@@ -10,25 +10,50 @@ const getEmailAuth = () => {
   return { user, pass, from };
 };
 
-const resolveSmtpHost = async () => {
+const getSmtpCandidates = async () => {
+  const candidates = [
+    { name: "smtp.gmail.com:465", host: "smtp.gmail.com", port: 465, secure: true, requireTLS: false },
+    { name: "smtp.gmail.com:587", host: "smtp.gmail.com", port: 587, secure: false, requireTLS: true },
+    { name: "smtp-relay.gmail.com:587", host: "smtp-relay.gmail.com", port: 587, secure: false, requireTLS: true }
+  ];
+
   try {
-    const result = await dns.promises.lookup("smtp.gmail.com", { family: 4 });
-    if (result && result.address) {
-      console.log("[EMAIL] Using IPv4 SMTP address:", result.address);
-      return result.address;
-    }
+    const addresses = await dns.promises.resolve4("smtp.gmail.com");
+    const ipCandidates = addresses.flatMap((ip) => ([
+      { name: `${ip}:465`, host: ip, port: 465, secure: true, requireTLS: false },
+      { name: `${ip}:587`, host: ip, port: 587, secure: false, requireTLS: true }
+    ]));
+    return [...ipCandidates, ...candidates];
   } catch (error) {
-    console.warn("[EMAIL] IPv4 DNS lookup failed, falling back to hostname", {
+    console.warn("[EMAIL] resolve4 failed, using hostname routes", {
       code: error.code,
       message: error.message
     });
+    return candidates;
   }
-
-  return "smtp.gmail.com";
 };
 
-const createTransporter = async () => {
-  const { user, pass } = getEmailAuth();
+const createTransporter = ({ user, pass, route }) => nodemailer.createTransport({
+  host: route.host,
+  port: route.port,
+  secure: route.secure,
+  auth: {
+    user,
+    pass
+  },
+  connectionTimeout: 7000,
+  greetingTimeout: 7000,
+  socketTimeout: 15000,
+  requireTLS: route.requireTLS,
+  tls: {
+    servername: "smtp.gmail.com",
+    rejectUnauthorized: true,
+    minVersion: "TLSv1.2"
+  }
+});
+
+const sendOtpEmail = async ({ toEmail, otp, expiryMinutes = 5 }) => {
+  const { user, pass, from } = getEmailAuth();
 
   if (!user || !pass) {
     const error = new Error("Missing EMAIL_USER or EMAIL_PASS in environment");
@@ -36,123 +61,43 @@ const createTransporter = async () => {
     throw error;
   }
 
-  const smtpHost = await resolveSmtpHost();
-
-  console.log("[EMAIL] Creating SMTP transporter for user:", user);
-  console.log("Using SMTP host:", smtpHost);
-  console.log("Using SMTP port:", 587);
-
-  // Primary transporter config
-  const primaryConfig = {
-    host: smtpHost,
-    port: 587,
-    secure: false,
-    auth: {
-      user,
-      pass
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 20000,
-    requireTLS: true,
-    tls: {
-      servername: "smtp.gmail.com",
-      rejectUnauthorized: true,
-      minVersion: "TLSv1.2"
-    }
+  const mail = {
+    from,
+    to: toEmail,
+    subject: "OTP Verification",
+    text: `Your OTP is ${otp}. It will expire in ${expiryMinutes} minutes.`
   };
 
-  return nodemailer.createTransport(primaryConfig);
-};
+  const routes = await getSmtpCandidates();
+  const failures = [];
 
-let verifiedTransport = false;
-
-const verifyEmailTransport = async (transporter) => {
-  if (verifiedTransport) {
-    return;
-  }
-
-  try {
-    console.log("[EMAIL] Attempting to verify SMTP connection...");
-    await transporter.verify();
-    verifiedTransport = true;
-    console.log("[EMAIL] ✅ SMTP transporter verified successfully");
-  } catch (error) {
-    console.warn("[EMAIL] ⚠️ SMTP verify failed, will try direct send", {
-      code: error.code,
-      message: error.message,
-      command: error.command
-    });
-    // Don't throw - allow direct send attempt
-  }
-};
-
-const sendOtpEmail = async ({ toEmail, otp, expiryMinutes = 5 }) => {
-  const { from } = getEmailAuth();
-  const MAX_RETRIES = 3;
-  
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+  for (const route of routes) {
     try {
-      console.log(`[EMAIL] === Attempt ${attempt}/${MAX_RETRIES} - Starting OTP email send ===`);
-      console.log("[EMAIL] Target:", toEmail);
-      console.log("[EMAIL] From:", from);
-
-      const transporter = await createTransporter();
-      console.log("[EMAIL] Transporter created");
-
-      await verifyEmailTransport(transporter);
-
-      const mail = {
-        from,
-        to: toEmail,
-        subject: "OTP Verification",
-        text: `Your OTP is ${otp}. It will expire in ${expiryMinutes} minutes.`
-      };
-
-      console.log("[EMAIL] Calling transporter.sendMail()...");
+      console.log("[EMAIL] Trying SMTP route:", route.name);
+      const transporter = createTransporter({ user, pass, route });
       const info = await transporter.sendMail(mail);
-      
-      console.log("[EMAIL] ✅ SUCCESS - OTP email sent", {
-        attempt,
+
+      console.log("[EMAIL] ✅ OTP sent", {
+        route: route.name,
         to: toEmail,
         messageId: info.messageId,
         response: info.response
       });
+
       return info;
-
     } catch (error) {
-      console.error(`[EMAIL] ❌ Attempt ${attempt} failed:`, {
+      failures.push(`${route.name} -> ${error.code || "UNKNOWN"}: ${error.message}`);
+      console.warn("[EMAIL] Route failed", {
+        route: route.name,
         code: error.code,
-        command: error.command,
-        message: error.message,
-        response: error.response
+        message: error.message
       });
-
-      // Log full error details
-      if (error.stack) {
-        console.error("[EMAIL] Stack trace:", error.stack);
-      }
-
-      // If last attempt, throw
-      if (attempt === MAX_RETRIES) {
-        console.error("[EMAIL] ❌ All attempts failed. Throwing error.");
-        console.error("[EMAIL] Final error details:", {
-          type: error.constructor.name,
-          code: error.code,
-          message: error.message,
-          isNetworkError: error.code && (error.code.includes("ECONNREFUSED") || error.code.includes("ENOTFOUND") || error.code.includes("ETIMEDOUT")),
-          isAuthError: error.code && (error.code === "EAUTH" || error.message.includes("Invalid login")),
-          isSMTPError: error.code && error.code.startsWith("SMTP")
-        });
-        throw error;
-      }
-
-      // Wait before retry with exponential backoff
-      const waitMs = Math.pow(2, attempt - 1) * 1000;
-      console.warn(`[EMAIL] Retrying in ${waitMs}ms...`);
-      await new Promise(resolve => setTimeout(resolve, waitMs));
     }
   }
+
+  const aggregate = new Error(`All SMTP routes failed. ${failures.join(" | ")}`);
+  aggregate.code = "SMTP_ALL_ROUTES_FAILED";
+  throw aggregate;
 };
 
 module.exports = {
