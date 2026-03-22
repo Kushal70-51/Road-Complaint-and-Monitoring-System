@@ -20,9 +20,9 @@ const createTransporter = () => {
   console.log("[EMAIL] Creating SMTP transporter for user:", user);
   console.log("Using SMTP host:", "smtp.gmail.com");
   console.log("Using SMTP port:", 587);
-  console.log("Using IPv4 family:", 4);
 
-  return nodemailer.createTransport({
+  // Primary transporter config
+  const primaryConfig = {
     host: "smtp.gmail.com",
     port: 587,
     secure: false,
@@ -33,8 +33,15 @@ const createTransporter = () => {
     },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
-    socketTimeout: 20000
-  });
+    socketTimeout: 20000,
+    requireTLS: true,
+    tls: {
+      rejectUnauthorized: true,
+      minVersion: "TLSv1.2"
+    }
+  };
+
+  return nodemailer.createTransport(primaryConfig);
 };
 
 let verifiedTransport = false;
@@ -45,57 +52,85 @@ const verifyEmailTransport = async (transporter) => {
   }
 
   try {
+    console.log("[EMAIL] Attempting to verify SMTP connection...");
     await transporter.verify();
     verifiedTransport = true;
-    console.log("[EMAIL] SMTP transporter verified");
+    console.log("[EMAIL] ✅ SMTP transporter verified successfully");
   } catch (error) {
-    console.warn("[EMAIL] SMTP verify failed, continuing with direct send", {
+    console.warn("[EMAIL] ⚠️ SMTP verify failed, will try direct send", {
       code: error.code,
-      message: error.message
+      message: error.message,
+      command: error.command
     });
+    // Don't throw - allow direct send attempt
   }
 };
 
 const sendOtpEmail = async ({ toEmail, otp, expiryMinutes = 5 }) => {
   const { from } = getEmailAuth();
+  const MAX_RETRIES = 3;
   
-  try {
-    const transporter = createTransporter();
-
-    await verifyEmailTransport(transporter);
-
-    const mail = {
-      from,
-      to: toEmail,
-      subject: "OTP Verification",
-      text: `Your OTP is ${otp}. It will expire in ${expiryMinutes} minutes.`
-    };
-
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const info = await transporter.sendMail(mail);
-      console.log("[EMAIL] OTP email sent successfully", {
+      console.log(`[EMAIL] === Attempt ${attempt}/${MAX_RETRIES} - Starting OTP email send ===`);
+      console.log("[EMAIL] Target:", toEmail);
+      console.log("[EMAIL] From:", from);
+
+      const transporter = createTransporter();
+      console.log("[EMAIL] Transporter created");
+
+      await verifyEmailTransport(transporter);
+
+      const mail = {
+        from,
         to: toEmail,
-        messageId: info.messageId
+        subject: "OTP Verification",
+        text: `Your OTP is ${otp}. It will expire in ${expiryMinutes} minutes.`
+      };
+
+      console.log("[EMAIL] Calling transporter.sendMail()...");
+      const info = await transporter.sendMail(mail);
+      
+      console.log("[EMAIL] ✅ SUCCESS - OTP email sent", {
+        attempt,
+        to: toEmail,
+        messageId: info.messageId,
+        response: info.response
       });
       return info;
-    } catch (sendError) {
-      console.error("[EMAIL] Failed to send OTP email - SMTP Error", {
-        to: toEmail,
-        code: sendError.code,
-        command: sendError.command,
-        response: sendError.response,
-        message: sendError.message
+
+    } catch (error) {
+      console.error(`[EMAIL] ❌ Attempt ${attempt} failed:`, {
+        code: error.code,
+        command: error.command,
+        message: error.message,
+        response: error.response
       });
-      throw sendError;
+
+      // Log full error details
+      if (error.stack) {
+        console.error("[EMAIL] Stack trace:", error.stack);
+      }
+
+      // If last attempt, throw
+      if (attempt === MAX_RETRIES) {
+        console.error("[EMAIL] ❌ All attempts failed. Throwing error.");
+        console.error("[EMAIL] Final error details:", {
+          type: error.constructor.name,
+          code: error.code,
+          message: error.message,
+          isNetworkError: error.code && (error.code.includes("ECONNREFUSED") || error.code.includes("ENOTFOUND") || error.code.includes("ETIMEDOUT")),
+          isAuthError: error.code && (error.code === "EAUTH" || error.message.includes("Invalid login")),
+          isSMTPError: error.code && error.code.startsWith("SMTP")
+        });
+        throw error;
+      }
+
+      // Wait before retry with exponential backoff
+      const waitMs = Math.pow(2, attempt - 1) * 1000;
+      console.warn(`[EMAIL] Retrying in ${waitMs}ms...`);
+      await new Promise(resolve => setTimeout(resolve, waitMs));
     }
-  } catch (error) {
-    console.error("[EMAIL] OTP process failed", {
-      toEmail,
-      errorCode: error.code,
-      errorMessage: error.message,
-      isCredentialsError: error.code === "MISSING_CREDENTIALS"
-    });
-    throw error;
   }
 };
 
