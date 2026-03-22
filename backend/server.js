@@ -67,12 +67,16 @@ app.use("/uploads", express.static("uploads"));
 
 // Serve frontend build files in production
 const frontendBuildPath = path.join(__dirname, "../frontend/build");
+const frontendIndexPath = path.join(frontendBuildPath, "index.html");
+const hasFrontendBuild = fs.existsSync(frontendIndexPath);
 
 console.log("[SERVER] Frontend build path:", frontendBuildPath);
 console.log("[SERVER] Frontend build exists:", fs.existsSync(frontendBuildPath));
-console.log("[SERVER] Index.html exists:", fs.existsSync(path.join(frontendBuildPath, "index.html")));
+console.log("[SERVER] Index.html exists:", hasFrontendBuild);
 
-app.use(express.static(frontendBuildPath));
+if (hasFrontendBuild) {
+  app.use(express.static(frontendBuildPath));
+}
 
 // connect to mongo
 // start app after DB connection and run any initializers
@@ -121,29 +125,33 @@ const start = async () => {
     });
   });
 
-  // SPA fallback - serve index.html for all non-API routes (for React Router)
-  // This must come AFTER all API routes
-  app.use((req, res, next) => {
-    // Skip if it's an API route
-    if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) {
-      return next();
-    }
-
-    // Skip if it's a static file that exists
-    if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/i)) {
-      return next();
-    }
-
-    // Serve index.html for all other routes
-    const indexPath = path.join(frontendBuildPath, "index.html");
-    console.log("[SPA] Serving index.html for route:", req.path);
-    res.sendFile(indexPath, (err) => {
-      if (err) {
-        console.error("[SPA] Error serving index.html:", err);
-        res.status(500).json({ error: "Could not load application" });
+  if (hasFrontendBuild) {
+    // SPA fallback - serve index.html for all non-API routes (for React Router)
+    // This must come AFTER all API routes
+    app.use((req, res, next) => {
+      // Skip if it's an API route
+      if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) {
+        return next();
       }
+
+      // Skip if it's a static file request
+      if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/i)) {
+        return next();
+      }
+
+      console.log("[SPA] Serving index.html for route:", req.path);
+      return res.sendFile(frontendIndexPath, (err) => {
+        if (err) {
+          console.error("[SPA] Error serving index.html:", err);
+          return res.status(500).json({ error: "Could not load application" });
+        }
+      });
     });
-  });
+  } else {
+    app.get("/", (req, res) => {
+      res.json({ message: "API is running" });
+    });
+  }
 
   // Centralized JSON error handler for API requests
   app.use((err, req, res, next) => {
