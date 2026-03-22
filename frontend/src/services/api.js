@@ -1,7 +1,10 @@
 import axios from "axios";
 
-export const API_ASSET_BASE_URL = process.env.REACT_APP_API_BASE_URL;
-export const API_BASE_URL = `${API_ASSET_BASE_URL}/api`;
+const rawApiBase = (process.env.REACT_APP_API_BASE_URL || "").trim().replace(/\/+$/, "");
+const normalizedApiOrigin = rawApiBase.replace(/\/api$/i, "");
+
+export const API_ASSET_BASE_URL = normalizedApiOrigin;
+export const API_BASE_URL = `${normalizedApiOrigin}/api`;
 
 // headers function (same rehne de)
 const getHeaders = () => {

@@ -7,6 +7,7 @@ const Navbar = () => {
   const { isAuthenticated, user, logout } = useContext(AuthContext);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const isAdminUser = Boolean(user && ['admin', 'superadmin'].includes(user.role));
 
   // determine if current route is an admin page
   const isAdminRoute = location.pathname.startsWith('/admin');
@@ -50,7 +51,7 @@ const Navbar = () => {
               <li><Link to="/register">Register / Login</Link></li>
               <li><Link to="/map">View Status</Link></li>
             </>
-          ) : user && user.role ? (
+          ) : isAdminUser ? (
             // admin user: only dashboard link shown; logout available on profile
             <>
               <li><Link to="/admin">Admin Dashboard</Link></li>
@@ -67,7 +68,7 @@ const Navbar = () => {
           )}
 
           {/* public informational links hidden for admin users */}
-          {!(isAuthenticated && user && user.role) && (
+          {!(isAuthenticated && isAdminUser) && (
             <>
               <li><Link to="/contact">Contact Us</Link></li>
               <li><Link to="/help">Help & Support</Link></li>
