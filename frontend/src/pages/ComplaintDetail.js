@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { complaintService } from '../services/api';
+import { complaintService, API_ASSET_BASE_URL } from '../services/api';
 import { formatDate } from '../utils/formatDate';
 import Loader from '../components/Loader';
 import './adminDashboard.css'; // reuse styles, e.g. badge
@@ -54,10 +54,9 @@ const ComplaintDetail = () => {
       </div>
       {complaint.image && (
         <div className="detail-image">
-          {/* remove any trailing /api from base URL so path matches server static mount */}
           <img 
-            src={`${(process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000').replace(/\/api\/?$/i, '')}/uploads/${complaint.image}`} 
-            alt="complaint" 
+            src={`${API_ASSET_BASE_URL}/uploads/${complaint.image}`}
+            alt="complaint"
           />
         </div>
       )}

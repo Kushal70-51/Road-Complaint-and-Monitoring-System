@@ -1,16 +1,16 @@
-import axios from 'axios';
+import axios from "axios";
 
-const rawApiBaseUrl = (process.env.REACT_APP_API_BASE_URL || '').trim();
-const API_BASE_URL = /^https?:\/\//i.test(rawApiBaseUrl)
-  ? rawApiBaseUrl.replace(/\/+$/, '')
-  : 'http://localhost:5000/api';
+export const API_ASSET_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+export const API_BASE_URL = `${API_ASSET_BASE_URL}/api`;
 
+// headers function (same rehne de)
 const getHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
+
   return {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 };
 
@@ -20,7 +20,7 @@ const handleResponse = async (response) => {
 
   if (!contentType.includes('application/json')) {
     const endpoint = response.url || 'API endpoint';
-    throw new Error(`Expected JSON from ${endpoint}, but received non-JSON response. Check backend URL (http://localhost:5000/api).`);
+    throw new Error(`Expected JSON from ${endpoint}, but received non-JSON response.`);
   }
 
   const data = responseText ? JSON.parse(responseText) : {};
@@ -34,16 +34,15 @@ const handleResponse = async (response) => {
 export const authService = {
   sendOtp: async (email) => {
     const normalizedEmail = String(email || '').trim().toLowerCase();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!normalizedEmail || !emailRegex.test(normalizedEmail)) {
+    if (!normalizedEmail) {
       throw new Error('Please enter a valid email');
     }
 
     try {
       // Keep endpoint explicit to match backend route and simplify local debugging.
       console.log('[OTP_API] Sending OTP request', { email: normalizedEmail });
-      const response = await axios.post('http://localhost:5000/api/auth/send-otp', { email: normalizedEmail });
+      const response = await axios.post(`${API_BASE_URL}/auth/send-otp`, { email: normalizedEmail });
       console.log('[OTP_API] OTP request success', response.data);
       return response.data;
     } catch (error) {
