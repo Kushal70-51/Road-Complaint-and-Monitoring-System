@@ -35,7 +35,8 @@ const allowedOrigins = [
   "http://localhost:3001",
   process.env.FRONTEND_URL,
   process.env.FRONTEND_URL_2,
-  "https://road-complaint-and-monitoring-system.onrender.com"
+  "https://road-complaint-and-monitoring-system.onrender.com",
+  "https://road-complaint-and-monitoring-system-1.onrender.com"
 ].filter(Boolean);
 
 const corsOptions = {
