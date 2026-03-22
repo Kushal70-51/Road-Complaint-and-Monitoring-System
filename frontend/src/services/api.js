@@ -42,11 +42,6 @@ const handleResponse = async (response) => {
   }
 
   const data = responseText ? JSON.parse(responseText) : {};
-  if (response.status === 401) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-  }
-
   if (!response.ok) {
     throw new Error(data.error || data.message || 'An error occurred');
   }

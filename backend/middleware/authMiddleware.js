@@ -1,14 +1,35 @@
 const jwt = require("jsonwebtoken");
 
 function authMiddleware(req, res, next) {
-  const authHeader = req.header("Authorization") || "";
-  const token = authHeader.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "No token provided" });
+  const authHeader = (req.header("Authorization") || "").trim();
+  const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+  const token = String(bearerMatch ? bearerMatch[1] : authHeader)
+    .trim()
+    .replace(/^"|"$/g, "");
+
+  if (!token || token === "null" || token === "undefined") {
+    return res.status(401).json({ error: "No token provided" });
+  }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret");
+    const candidateSecrets = [process.env.JWT_SECRET, "your_jwt_secret"].filter(Boolean);
+    let decoded = null;
+
+    for (const secret of candidateSecrets) {
+      try {
+        decoded = jwt.verify(token, secret);
+        break;
+      } catch (verifyError) {
+        decoded = null;
+      }
+    }
+
+    if (!decoded) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
     req.user = decoded;
-    next();
+    return next();
   } catch (err) {
     return res.status(401).json({ error: "Invalid token" });
   }
