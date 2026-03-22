@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const dns = require("dns");
 
 const getEmailAuth = () => {
   const user = String(process.env.EMAIL_USER || "").trim();
@@ -9,7 +10,24 @@ const getEmailAuth = () => {
   return { user, pass, from };
 };
 
-const createTransporter = () => {
+const resolveSmtpHost = async () => {
+  try {
+    const result = await dns.promises.lookup("smtp.gmail.com", { family: 4 });
+    if (result && result.address) {
+      console.log("[EMAIL] Using IPv4 SMTP address:", result.address);
+      return result.address;
+    }
+  } catch (error) {
+    console.warn("[EMAIL] IPv4 DNS lookup failed, falling back to hostname", {
+      code: error.code,
+      message: error.message
+    });
+  }
+
+  return "smtp.gmail.com";
+};
+
+const createTransporter = async () => {
   const { user, pass } = getEmailAuth();
 
   if (!user || !pass) {
@@ -18,16 +36,17 @@ const createTransporter = () => {
     throw error;
   }
 
+  const smtpHost = await resolveSmtpHost();
+
   console.log("[EMAIL] Creating SMTP transporter for user:", user);
-  console.log("Using SMTP host:", "smtp.gmail.com");
+  console.log("Using SMTP host:", smtpHost);
   console.log("Using SMTP port:", 587);
 
   // Primary transporter config
   const primaryConfig = {
-    host: "smtp.gmail.com",
+    host: smtpHost,
     port: 587,
     secure: false,
-    family: 4,
     auth: {
       user,
       pass
@@ -37,6 +56,7 @@ const createTransporter = () => {
     socketTimeout: 20000,
     requireTLS: true,
     tls: {
+      servername: "smtp.gmail.com",
       rejectUnauthorized: true,
       minVersion: "TLSv1.2"
     }
@@ -77,7 +97,7 @@ const sendOtpEmail = async ({ toEmail, otp, expiryMinutes = 5 }) => {
       console.log("[EMAIL] Target:", toEmail);
       console.log("[EMAIL] From:", from);
 
-      const transporter = createTransporter();
+      const transporter = await createTransporter();
       console.log("[EMAIL] Transporter created");
 
       await verifyEmailTransport(transporter);
