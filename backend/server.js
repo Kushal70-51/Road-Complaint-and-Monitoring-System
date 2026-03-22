@@ -57,14 +57,15 @@ const corsOptions = {
 };
 
 // create uploads folder if missing (multer doesn't auto-create it)
-if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads");
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
 app.use(express.json());
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(uploadsDir));
 
 // Serve frontend build files in production
 const frontendBuildPath = path.join(__dirname, "../frontend/build");
