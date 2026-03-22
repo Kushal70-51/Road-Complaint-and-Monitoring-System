@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { adminService, API_ASSET_BASE_URL } from '../services/api';
+import { adminService, API_BASE_URL } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { useLocation } from 'react-router-dom';
 import ComplaintLocationMap from '../components/ComplaintLocationMap';
@@ -147,7 +147,7 @@ const AdminDashboard = () => {
     fetchComplaints();
   }, []);
 
-  const serverBase = API_ASSET_BASE_URL;
+  const serverBase = API_BASE_URL.replace(/\/api$/, '');
 
   return (
     <div className="admin-dashboard">
