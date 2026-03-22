@@ -1,8 +1,9 @@
 const nodemailer = require("nodemailer");
 
 const getEmailAuth = () => {
-  const user = process.env.EMAIL_USER;
-  const pass = process.env.EMAIL_PASS;
+  const user = String(process.env.EMAIL_USER || "").trim();
+  // Gmail app passwords are sometimes copied with spaces; normalize before SMTP auth.
+  const pass = String(process.env.EMAIL_PASS || "").replace(/\s+/g, "").trim();
   const from = process.env.SMTP_FROM || (user ? `Road Complaint <${user}>` : undefined);
 
   return { user, pass, from };

@@ -1,6 +1,10 @@
 import axios from "axios";
 
-const rawApiBase = (process.env.REACT_APP_API_BASE_URL || "").trim().replace(/\/+$/, "");
+const fallbackApiOrigin = process.env.NODE_ENV === "production"
+  ? "https://road-complaint-and-monitoring-system.onrender.com"
+  : "http://localhost:5000";
+
+const rawApiBase = (process.env.REACT_APP_API_BASE_URL || fallbackApiOrigin).trim().replace(/\/+$/, "");
 const normalizedApiOrigin = rawApiBase.replace(/\/api$/i, "");
 
 export const API_ASSET_BASE_URL = normalizedApiOrigin;
