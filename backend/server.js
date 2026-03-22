@@ -65,6 +65,15 @@ app.options("*", cors(corsOptions));
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
+// Serve frontend build files in production
+const frontendBuildPath = path.join(__dirname, "../frontend/build");
+
+console.log("[SERVER] Frontend build path:", frontendBuildPath);
+console.log("[SERVER] Frontend build exists:", fs.existsSync(frontendBuildPath));
+console.log("[SERVER] Index.html exists:", fs.existsSync(path.join(frontendBuildPath, "index.html")));
+
+app.use(express.static(frontendBuildPath));
+
 // connect to mongo
 // start app after DB connection and run any initializers
 const start = async () => {
@@ -99,11 +108,7 @@ const start = async () => {
     console.error("Error during superadmin initialization:", err);
   }
 
-  app.get("/", (req, res) => {
-    res.json({ message: "API is running" });
-  });
-
-  // mount routes
+  // mount API routes
   app.use("/api/auth", authRoutes);
   app.use("/api/complaints", complaintRoutes);
   app.use("/api/admin", adminRoutes);
@@ -113,6 +118,17 @@ const start = async () => {
   app.use("/api", (req, res) => {
     res.status(404).json({
       error: `API route not found: ${req.method} ${req.originalUrl}`
+    });
+  });
+
+  // SPA fallback - serve index.html for all non-API routes (for React Router)
+  app.get("*", (req, res) => {
+    const indexPath = path.join(frontendBuildPath, "index.html");
+    res.sendFile(indexPath, (err) => {
+      if (err) {
+        console.error("[SPA] Error serving index.html:", err);
+        res.status(500).json({ error: "Could not load application" });
+      }
     });
   });
 

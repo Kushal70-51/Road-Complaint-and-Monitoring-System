@@ -187,7 +187,7 @@ PORT=5000
 
 ### 1. **.env** (Created)
 ```
-REACT_APP_API_BASE_URL=http://localhost:5000/api
+REACT_APP_API_BASE_URL=https://road-complaint-and-monitoring-system.onrender.com/api
 ```
 
 ### 2. **src/services/api.js**
