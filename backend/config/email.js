@@ -22,6 +22,7 @@ const createTransporter = () => {
     host: "smtp.gmail.com",
     port: 587,
     secure: false,
+    family: 4,
     auth: {
       user,
       pass
@@ -39,9 +40,16 @@ const verifyEmailTransport = async (transporter) => {
     return;
   }
 
-  await transporter.verify();
-  verifiedTransport = true;
-  console.log("[EMAIL] SMTP transporter verified");
+  try {
+    await transporter.verify();
+    verifiedTransport = true;
+    console.log("[EMAIL] SMTP transporter verified");
+  } catch (error) {
+    console.warn("[EMAIL] SMTP verify failed, continuing with direct send", {
+      code: error.code,
+      message: error.message
+    });
+  }
 };
 
 const sendOtpEmail = async ({ toEmail, otp, expiryMinutes = 5 }) => {
