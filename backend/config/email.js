@@ -10,6 +10,52 @@ const getEmailAuth = () => {
   return { user, pass, from };
 };
 
+const getResendConfig = () => {
+  const apiKey = String(process.env.RESEND_API_KEY || "").trim();
+  const from = String(process.env.RESEND_FROM || process.env.SMTP_FROM || "").trim();
+  return { apiKey, from };
+};
+
+const sendViaResend = async ({ toEmail, otp, expiryMinutes }) => {
+  const { apiKey, from } = getResendConfig();
+
+  if (!apiKey || !from) {
+    const error = new Error("Missing RESEND_API_KEY or RESEND_FROM");
+    error.code = "MISSING_RESEND_CONFIG";
+    throw error;
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from,
+      to: [toEmail],
+      subject: "OTP Verification",
+      text: `Your OTP is ${otp}. It will expire in ${expiryMinutes} minutes.`
+    })
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message = payload?.message || payload?.error || `Resend HTTP ${response.status}`;
+    const error = new Error(message);
+    error.code = "RESEND_SEND_FAILED";
+    throw error;
+  }
+
+  console.log("[EMAIL] ✅ OTP sent via Resend", {
+    to: toEmail,
+    id: payload?.id
+  });
+
+  return payload;
+};
+
 const getSmtpCandidates = async () => {
   const candidates = [
     { name: "smtp.gmail.com:465", host: "smtp.gmail.com", port: 465, secure: true, requireTLS: false },
@@ -53,6 +99,20 @@ const createTransporter = ({ user, pass, route }) => nodemailer.createTransport(
 });
 
 const sendOtpEmail = async ({ toEmail, otp, expiryMinutes = 5 }) => {
+  const { apiKey } = getResendConfig();
+
+  // Preferred path in cloud: HTTPS email API avoids SMTP port/network blocks.
+  if (apiKey) {
+    try {
+      return await sendViaResend({ toEmail, otp, expiryMinutes });
+    } catch (error) {
+      console.warn("[EMAIL] Resend path failed, falling back to SMTP", {
+        code: error.code,
+        message: error.message
+      });
+    }
+  }
+
   const { user, pass, from } = getEmailAuth();
 
   if (!user || !pass) {
