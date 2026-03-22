@@ -6,9 +6,24 @@ const normalizedApiOrigin = rawApiBase.replace(/\/api$/i, "");
 export const API_ASSET_BASE_URL = normalizedApiOrigin;
 export const API_BASE_URL = `${normalizedApiOrigin}/api`;
 
+const getAuthToken = () => {
+  const rawToken = localStorage.getItem("token");
+
+  if (!rawToken) {
+    return "";
+  }
+
+  const cleaned = String(rawToken).trim().replace(/^"|"$/g, "");
+  if (!cleaned || cleaned === "null" || cleaned === "undefined") {
+    return "";
+  }
+
+  return cleaned;
+};
+
 // headers function (same rehne de)
 const getHeaders = () => {
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
 
   return {
     Accept: "application/json",
@@ -27,6 +42,11 @@ const handleResponse = async (response) => {
   }
 
   const data = responseText ? JSON.parse(responseText) : {};
+  if (response.status === 401) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  }
+
   if (!response.ok) {
     throw new Error(data.error || data.message || 'An error occurred');
   }
@@ -116,7 +136,11 @@ export const authService = {
 // Complaint Service
 export const complaintService = {
   uploadComplaint: async (formData) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error('Session expired. Please login again.');
+    }
+
     const response = await fetch(`${API_BASE_URL}/complaints/upload`, {
       method: 'POST',
       headers: {
