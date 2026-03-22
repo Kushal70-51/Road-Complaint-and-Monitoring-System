@@ -12,11 +12,15 @@ const createTransporter = () => {
   const { user, pass } = getEmailAuth();
 
   if (!user || !pass) {
-    throw new Error("Missing EMAIL_USER or EMAIL_PASS");
+    const error = new Error("Missing EMAIL_USER or EMAIL_PASS in environment");
+    error.code = "MISSING_CREDENTIALS";
+    throw error;
   }
 
+  console.log("[EMAIL] Creating SMTP transporter for user:", user);
   console.log("Using SMTP host:", "smtp.gmail.com");
   console.log("Using SMTP port:", 587);
+  console.log("Using IPv4 family:", 4);
 
   return nodemailer.createTransport({
     host: "smtp.gmail.com",
@@ -54,30 +58,42 @@ const verifyEmailTransport = async (transporter) => {
 
 const sendOtpEmail = async ({ toEmail, otp, expiryMinutes = 5 }) => {
   const { from } = getEmailAuth();
-  const transporter = createTransporter();
-
-  await verifyEmailTransport(transporter);
-
-  const mail = {
-    from,
-    to: toEmail,
-    subject: "OTP Verification",
-    text: `Your OTP is ${otp}. It will expire in ${expiryMinutes} minutes.`
-  };
-
+  
   try {
-    const info = await transporter.sendMail(mail);
-    console.log("[EMAIL] OTP email sent", {
+    const transporter = createTransporter();
+
+    await verifyEmailTransport(transporter);
+
+    const mail = {
+      from,
       to: toEmail,
-      messageId: info.messageId
-    });
-    return info;
+      subject: "OTP Verification",
+      text: `Your OTP is ${otp}. It will expire in ${expiryMinutes} minutes.`
+    };
+
+    try {
+      const info = await transporter.sendMail(mail);
+      console.log("[EMAIL] OTP email sent successfully", {
+        to: toEmail,
+        messageId: info.messageId
+      });
+      return info;
+    } catch (sendError) {
+      console.error("[EMAIL] Failed to send OTP email - SMTP Error", {
+        to: toEmail,
+        code: sendError.code,
+        command: sendError.command,
+        response: sendError.response,
+        message: sendError.message
+      });
+      throw sendError;
+    }
   } catch (error) {
-    console.error("[EMAIL] Failed to send OTP email", {
-      to: toEmail,
-      code: error.code,
-      response: error.response,
-      message: error.message
+    console.error("[EMAIL] OTP process failed", {
+      toEmail,
+      errorCode: error.code,
+      errorMessage: error.message,
+      isCredentialsError: error.code === "MISSING_CREDENTIALS"
     });
     throw error;
   }

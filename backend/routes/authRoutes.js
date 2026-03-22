@@ -15,6 +15,53 @@ const VERIFIED_WINDOW_MINUTES = 15;
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const OTP_MAX_REQUESTS_PER_HOUR = 5;
 
+// Diagnostic endpoint - test if email works
+router.get("/test-email", async (req, res) => {
+  try {
+    const emailUser = process.env.EMAIL_USER;
+    const emailPass = process.env.EMAIL_PASS;
+    const smtpFrom = process.env.SMTP_FROM;
+
+    const hasEmailUser = !!emailUser;
+    const hasEmailPass = !!emailPass;
+    const hasSmtpFrom = !!smtpFrom;
+
+    if (!hasEmailUser || !hasEmailPass) {
+      return res.status(400).json({
+        error: "Email credentials not configured",
+        hasEmailUser,
+        hasEmailPass,
+        hasSmtpFrom,
+        message: "Missing EMAIL_USER or EMAIL_PASS in environment variables"
+      });
+    }
+
+    // Try to send a test email
+    const { sendOtpEmail: sendTestEmail } = require("../config/email");
+    await sendTestEmail({
+      toEmail: emailUser,
+      otp: "123456",
+      expiryMinutes: 5
+    });
+
+    return res.json({
+      success: true,
+      message: "Test email sent successfully",
+      to: emailUser,
+      hasEmailUser,
+      hasEmailPass,
+      hasSmtpFrom
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: "Test email failed",
+      message: error.message,
+      code: error.code,
+      details: error.response || error.toString()
+    });
+  }
+});
+
 const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 
@@ -134,13 +181,18 @@ router.post("/send-otp", async (req, res) => {
     console.error("[SEND_OTP_ROUTE] Failed", {
       message: error.message,
       code: error.code,
+      response: error.response,
       stack: process.env.NODE_ENV === "production" ? undefined : error.stack
     });
 
     return res.status(500).json({
       message: "Failed to send OTP",
       error: "Failed to send OTP",
-      details: process.env.NODE_ENV === "production" ? undefined : error.message
+      details: error.message,
+      code: error.code,
+      nodeEnv: process.env.NODE_ENV,
+      emailUser: process.env.EMAIL_USER ? "SET" : "MISSING",
+      emailPass: process.env.EMAIL_PASS ? "SET" : "MISSING"
     });
   }
 });
