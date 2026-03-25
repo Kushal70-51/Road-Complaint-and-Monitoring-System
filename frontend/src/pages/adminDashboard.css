@@ -189,6 +189,7 @@
 .complaints-table th {
   background: #f9f9f9;
   font-weight: 600;
+  color: #333;
 }
 
 .complaints-table tr:hover {
@@ -495,6 +496,7 @@
 
 .admins-table td {
   padding: 0.75rem;
+  color: #333;
   border-bottom: 1px solid #eee;
 }
 
