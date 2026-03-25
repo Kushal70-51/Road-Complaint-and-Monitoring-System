@@ -56,7 +56,67 @@ const LocationPicker = ({ selectedPath = [], onPathChange, onRouteChange }) => {
   const [isFetchingRoute, setIsFetchingRoute] = useState(false);
   const [routeError, setRouteError] = useState('');
   const [routeInfo, setRouteInfo] = useState({ distance: 0, duration: 0 });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchError, setSearchError] = useState('');
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const [searchCenter, setSearchCenter] = useState(null);
   const safePath = normalizePath(selectedPath);
+
+  const handleLocationSearch = async () => {
+    const query = searchQuery.trim();
+    if (!query) {
+      setSearchError('Enter a place name to search.');
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearchingLocation(true);
+    setSearchError('');
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Unable to search this location right now.');
+      }
+
+      const results = await response.json();
+      if (!Array.isArray(results) || results.length === 0) {
+        setSearchResults([]);
+        setSearchError('No matching place found. Try a more specific location.');
+        return;
+      }
+
+      const normalizedResults = results
+        .map((item) => ({
+          lat: Number(item?.lat),
+          lng: Number(item?.lon),
+          label: item?.display_name || 'Unknown location'
+        }))
+        .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lng));
+
+      if (normalizedResults.length === 0) {
+        setSearchResults([]);
+        setSearchError('No valid coordinates found for this search.');
+        return;
+      }
+
+      setSearchResults(normalizedResults);
+      setSearchCenter({ lat: normalizedResults[0].lat, lng: normalizedResults[0].lng });
+    } catch (error) {
+      setSearchResults([]);
+      setSearchError(error.message || 'Location search failed. Please try again.');
+    } finally {
+      setIsSearchingLocation(false);
+    }
+  };
+
+  const handleSelectSearchResult = (result) => {
+    setSearchCenter({ lat: result.lat, lng: result.lng });
+  };
 
   // Fetch OSRM route when both start and end points are selected
   useEffect(() => {
@@ -203,6 +263,55 @@ const LocationPicker = ({ selectedPath = [], onPathChange, onRouteChange }) => {
         </button>
       </div>
 
+      <div style={{ marginTop: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search location on map (e.g., Main Chowk Kathua)"
+            style={{ flex: '1 1 280px' }}
+          />
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleLocationSearch}
+            disabled={isSearchingLocation}
+          >
+            {isSearchingLocation ? 'Searching...' : 'Search Place'}
+          </button>
+        </div>
+
+        {searchError && (
+          <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#ffebee', borderRadius: 4, color: '#d32f2f' }}>
+            {searchError}
+          </div>
+        )}
+
+        {searchResults.length > 0 && (
+          <div style={{ marginTop: '0.5rem', border: '1px solid #e0e0e0', borderRadius: 6, maxHeight: 160, overflowY: 'auto', backgroundColor: '#fff' }}>
+            {searchResults.map((result, index) => (
+              <button
+                key={`${result.lat}-${result.lng}-${index}`}
+                type="button"
+                onClick={() => handleSelectSearchResult(result)}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  border: 'none',
+                  borderBottom: index === searchResults.length - 1 ? 'none' : '1px solid #f0f0f0',
+                  padding: '0.6rem 0.75rem',
+                  background: 'transparent',
+                  cursor: 'pointer'
+                }}
+              >
+                {result.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {isFetchingRoute && (
         <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#e3f2fd', borderRadius: 4, color: '#1976d2' }}>
           <strong>Fetching route...</strong>
@@ -221,6 +330,7 @@ const LocationPicker = ({ selectedPath = [], onPathChange, onRouteChange }) => {
             attribution='&copy; OpenStreetMap contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+          {searchCenter && <RecenterMap center={searchCenter} />}
           <ClickHandler onMapClick={appendPoint} isDrawingLocked={isDrawingLocked} />
           {safePath.length > 0 && (
             <>
