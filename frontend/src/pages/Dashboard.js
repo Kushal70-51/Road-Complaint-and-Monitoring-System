@@ -56,10 +56,6 @@ const Dashboard = () => {
     setFilteredComplaints(filtered);
   };
 
-  if (loading) {
-    return <Loader message="Loading your complaints..." />;
-  }
-
   return (
     <div className="dashboard-page">
       <div className="dashboard-header">
@@ -109,7 +105,9 @@ const Dashboard = () => {
           <a href="/upload" className="btn btn-primary">+ Submit New Complaint</a>
         </div>
 
-        {filteredComplaints.length > 0 ? (
+        {loading ? (
+          <Loader message="Loading your complaints..." />
+        ) : filteredComplaints.length > 0 ? (
           <div className="complaints-grid">
             {filteredComplaints.map(complaint => (
               <ComplaintCard 
