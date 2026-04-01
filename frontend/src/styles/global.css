@@ -2361,14 +2361,25 @@ footer {
   .hero-wrapper {
     flex-direction: column;
     gap: 2rem;
+    text-align: center;
   }
 
   .hero-content {
     text-align: center;
+    min-width: 0;
   }
 
   .hero-buttons {
     justify-content: center;
+    flex-direction: column;
+    align-items: stretch;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+
+  .hero-buttons .btn {
+    width: 100%;
+    text-align: center;
   }
 
   .hero h1 {
@@ -2385,11 +2396,33 @@ footer {
 
   .hero-images-container {
     width: 100%;
+    min-width: 0;
   }
 
   .hero-images img {
-    width: 400px;
-    height: 240px;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .services-container,
+  .info-section,
+  .how-it-works-section,
+  .screenshots-section {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .info-items,
+  .screenshots-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .service-card,
+  .info-item,
+  .screenshot-card {
+    min-width: 0;
   }
 
   .container,
@@ -2550,6 +2583,44 @@ footer {
     font-size: 0.9rem;
   }
 
+  .hero {
+    padding: 2rem 0.85rem;
+  }
+
+  .services-container,
+  .info-section,
+  .how-it-works-section,
+  .screenshots-section {
+    margin: 2rem 0;
+    padding: 2rem 0.85rem;
+  }
+
+  .section-title {
+    font-size: 1.2rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .services-grid,
+  .info-items,
+  .screenshots-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .service-card,
+  .info-item,
+  .screenshot-card {
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .screenshot-img {
+    height: 220px;
+  }
+
   nav a {
     padding: 0.6rem 0.8rem;
     font-size: 0.85rem;
@@ -2572,6 +2643,15 @@ footer {
 
   .footer-content {
     grid-template-columns: 1fr;
+  }
+
+  .footer-container {
+    gap: 1rem;
+  }
+
+  .footer-bottom {
+    font-size: 0.85rem;
+    padding-top: 1.25rem;
   }
 
   .stats-grid {
