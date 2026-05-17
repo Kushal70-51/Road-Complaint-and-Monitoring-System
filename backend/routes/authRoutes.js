@@ -36,7 +36,6 @@ router.get("/test-email", async (req, res) => {
       });
     }
 
-    // Try to send a test email
     const { sendOtpEmail: sendTestEmail } = require("../config/email");
     await sendTestEmail({
       toEmail: emailUser,
@@ -282,7 +281,6 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "Email verification expired. Please verify again." });
     }
 
-    // Check duplicate user only in users collection (not emailverifications).
     const existingUserByEmail = await User.findOne({ email: normalizedEmail });
     if (existingUserByEmail) {
       return res.status(400).json({
@@ -304,7 +302,12 @@ router.post("/register", async (req, res) => {
 
     await EmailVerification.deleteOne({ email: normalizedEmail });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || "your_jwt_secret");
+    // ✅ FIX: JWT_SECRET hardcoded fallback hataya, expiresIn add kiya
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
     res.json({
       message: "Registered Successfully",
@@ -360,7 +363,12 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || "your_jwt_secret");
+    // ✅ FIX: JWT_SECRET hardcoded fallback hataya, expiresIn add kiya
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
     res.json({
       message: "Logged in successfully",
