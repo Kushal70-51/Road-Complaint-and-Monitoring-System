@@ -10,7 +10,6 @@
   display: flex;
   align-items: center;
   gap: 2rem;
-  /* use green gradient matching main site theme */
   background: linear-gradient(135deg, #007b5e 0%, #009572 100%);
   color: #fff;
   padding: 2rem;
@@ -102,6 +101,7 @@
   border-radius: 4px;
   cursor: pointer;
   transition: background 0.2s;
+  white-space: nowrap;
 }
 
 .btn-logout:hover {
@@ -112,6 +112,7 @@
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
 }
 
 .btn {
@@ -153,6 +154,7 @@
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  overflow-x: auto;
 }
 
 .filters {
@@ -174,9 +176,17 @@
   flex: 0 0 auto;
 }
 
+/* Table scroll wrapper for mobile */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .complaints-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 600px;
 }
 
 .complaints-table th,
@@ -199,7 +209,8 @@
 .status-badge {
   padding: 0.25rem 0.6rem;
   border-radius: 12px;
-  font-size: 0.85rem;}
+  font-size: 0.85rem;
+}
 
 .view-complaints-button {
   margin-top: 2rem;
@@ -430,6 +441,7 @@
   border-radius: 4px;
   font-size: 1rem;
   font-family: inherit;
+  box-sizing: border-box;
 }
 
 .form-group input:focus,
@@ -480,6 +492,7 @@
 .admins-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 400px;
 }
 
 .admins-table thead {
@@ -549,40 +562,111 @@
   border-left: 4px solid #dc3545;
 }
 
-.btn-small {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.85rem;
-}
-
-.btn-danger {
-  background: #dc3545;
-  color: #fff;
-}
-
-.btn-danger:hover {
-  background: #c82333;
-}
-
+/* ===== MOBILE RESPONSIVE ===== */
 @media (max-width: 768px) {
+  .admin-dashboard {
+    padding: 1rem;
+  }
+
+  /* Profile card - column layout on mobile */
+  .admin-profile-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.2rem;
+    text-align: left;
+  }
+
+  .profile-info h2 {
+    font-size: 1.2rem;
+  }
+
+  /* Top card - stack vertically */
+  .top-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .top-text h1 {
+    font-size: 1.4rem;
+  }
+
+  .btn-logout {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Action buttons full width */
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .action-buttons .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Filters stack vertically */
   .filters {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .action-buttons {
-    flex-direction: column;
+  .filters input,
+  .filters select,
+  .filters button {
+    width: 100%;
   }
 
+  /* Modal full width */
   .modal {
     max-width: 95%;
+    width: 95%;
   }
 
+  .modal-header h2 {
+    font-size: 1.1rem;
+  }
+
+  /* Form rows stack */
   .form-row {
     flex-direction: column;
   }
 
   .form-row .btn-create {
     width: 100%;
+  }
+
+  /* Modal actions stack */
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  /* Table card padding reduce */
+  .filter-card,
+  .table-card {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-dashboard {
+    padding: 0.75rem;
+  }
+
+  .profile-avatar {
+    width: 60px;
+    height: 60px;
+  }
+
+  .profile-icon {
+    font-size: 2rem;
+  }
+
+  .top-text h1 {
+    font-size: 1.2rem;
   }
 }
 
