@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { contactService } from '../services/api';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -9,6 +10,7 @@ const Contact = () => {
   });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -18,15 +20,24 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     try {
-      // Send email API call here
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const message = formData.subject
+        ? `Subject: ${formData.subject}\n\n${formData.message}`
+        : formData.message;
+
+      await contactService.sendMessage({
+        name: formData.name,
+        email: formData.email,
+        message
+      });
       setSubmitted(true);
       setFormData({ name: '', email: '', subject: '', message: '' });
       setTimeout(() => setSubmitted(false), 3000);
-    } catch (error) {
-      console.error('Error sending message:', error);
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setError(err.message || 'Failed to send your message. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -43,7 +54,8 @@ const Contact = () => {
         <div className="contact-form-section">
           <h2>Send us a Message</h2>
           {submitted && <div className="alert alert-success">Message sent successfully!</div>}
-          
+          {error && <div className="alert alert-error">{error}</div>}
+
           <form onSubmit={handleSubmit} className="contact-form">
             <div className="form-group">
               <label>Name *</label>

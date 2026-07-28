@@ -1,4 +1,4 @@
-/* color theme: maroon (#800000), white, light gray (#f4f4f4) */
+/* color theme: matches the main app's teal palette (var(--primary)), white, light gray (#f4f4f4) */
 .admin-dashboard {
   padding: 2rem;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -10,11 +10,11 @@
   display: flex;
   align-items: center;
   gap: 2rem;
-  background: linear-gradient(135deg, #007b5e 0%, #009572 100%);
+  background: var(--gradient-primary, linear-gradient(135deg, #2a8f6f 0%, #1f6c53 100%));
   color: #fff;
   padding: 2rem;
   border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 123, 94, 0.2);
+  box-shadow: 0 4px 15px rgba(42, 143, 111, 0.25);
   margin-bottom: 2rem;
 }
 
@@ -28,6 +28,40 @@
   justify-content: center;
   border: 2px solid rgba(255, 255, 255, 0.3);
   flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.profile-avatar-button {
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.profile-avatar-button:hover {
+  transform: scale(1.04);
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar-edit-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  background: #fff;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 
 .profile-icon {
@@ -62,6 +96,45 @@
   opacity: 0.85;
 }
 
+.profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+  margin-top: 0.8rem;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.avatar-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 1.4rem;
+}
+
+.avatar-upload-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--primary-lighter, #e8f3f0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid var(--primary-lighter, #e8f3f0);
+}
+
+.avatar-upload-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-upload-preview .profile-icon {
+  color: var(--primary, #2a8f6f);
+}
+
 .role-text {
   background: rgba(255, 255, 255, 0.2);
   padding: 0.25rem 0.6rem;
@@ -84,7 +157,7 @@
 .top-text h1 {
   margin: 0;
   font-size: 2rem;
-  color: #800000;
+  color: var(--primary, #2a8f6f);
 }
 
 .top-text p {
@@ -94,9 +167,9 @@
 }
 
 .btn-logout {
-  background: #800000;
+  background: rgba(255, 255, 255, 0.18);
   color: #fff;
-  border: none;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
   padding: 0.6rem 1.2rem;
   border-radius: 4px;
   cursor: pointer;
@@ -105,13 +178,24 @@
 }
 
 .btn-logout:hover {
-  background: #5c0000;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.admin-quick-actions h3 {
+  margin: 0 0 1rem;
+  color: var(--primary, #2a8f6f);
+}
+
+.admin-quick-actions-hint {
+  margin-top: 0.9rem;
+  color: #888;
+  font-size: 0.85rem;
 }
 
 .action-buttons {
   display: flex;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 0;
   flex-wrap: wrap;
 }
 
@@ -134,12 +218,12 @@
 }
 
 .btn-primary {
-  background: #007b5e;
+  background: var(--gradient-primary, #2a8f6f);
   color: #fff;
 }
 
 .btn-primary:hover {
-  background: #005a48;
+  background: var(--primary-dark, #1f6c53);
 }
 
 .complaints-section {
@@ -217,7 +301,7 @@
 }
 
 .view-complaints-button .btn-primary {
-  background: #800000;
+  background: var(--gradient-primary, #2a8f6f);
   color: #fff;
   padding: 0.7rem 1.4rem;
   border-radius: 4px;
@@ -226,7 +310,7 @@
 }
 
 .view-complaints-button .btn-primary:hover {
-  background: #660000;
+  background: var(--primary-dark, #1f6c53);
 }
 
 .badge-pending {
@@ -381,7 +465,7 @@
   align-items: center;
   padding: 1.5rem;
   border-bottom: 1px solid #f0f0f0;
-  background: linear-gradient(135deg, #800000 0%, #660000 100%);
+  background: var(--gradient-primary, linear-gradient(135deg, #2a8f6f 0%, #1f6c53 100%));
   color: #fff;
 }
 
@@ -447,8 +531,8 @@
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #800000;
-  box-shadow: 0 0 0 3px rgba(128, 0, 0, 0.1);
+  border-color: var(--primary, #2a8f6f);
+  box-shadow: 0 0 0 3px rgba(42, 143, 111, 0.15);
 }
 
 .form-row {
@@ -477,7 +561,7 @@
 
 .create-admin-section h3 {
   margin-top: 0;
-  color: #800000;
+  color: var(--primary, #2a8f6f);
 }
 
 .create-admin-form {
@@ -485,7 +569,7 @@
 }
 
 .admins-list-section h3 {
-  color: #800000;
+  color: var(--primary, #2a8f6f);
   margin-bottom: 1rem;
 }
 
@@ -520,7 +604,7 @@
 .role-badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;
-  background: #800000;
+  background: var(--gradient-primary, #2a8f6f);
   color: #fff;
   border-radius: 20px;
   font-size: 0.85rem;

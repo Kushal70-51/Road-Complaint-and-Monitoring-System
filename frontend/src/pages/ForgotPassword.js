@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/api';
 
 const ForgotPassword = () => {
@@ -13,7 +13,7 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      const response = await authService.forgotPassword(email);
+      await authService.forgotPassword(email);
       setMessage({ 
         type: 'success', 
         text: 'Password reset link sent to your email. Please check your inbox.' 
@@ -61,8 +61,8 @@ const ForgotPassword = () => {
         </form>
 
         <div className="auth-footer">
-          <p><a href="/login">Back to Login</a></p>
-          <p>Don't have an account? <a href="/register">Register here</a></p>
+          <p><Link to="/login">Back to Login</Link></p>
+          <p>Don't have an account? <Link to="/register">Register here</Link></p>
         </div>
       </div>
     </div>

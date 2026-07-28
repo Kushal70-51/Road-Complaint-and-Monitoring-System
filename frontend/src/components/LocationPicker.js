@@ -61,7 +61,7 @@ const LocationPicker = ({ selectedPath = [], onPathChange, onRouteChange }) => {
   const [searchError, setSearchError] = useState('');
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
   const [searchCenter, setSearchCenter] = useState(null);
-  const safePath = normalizePath(selectedPath);
+  const safePath = useMemo(() => normalizePath(selectedPath), [selectedPath]);
 
   const handleLocationSearch = async () => {
     const query = searchQuery.trim();
@@ -325,7 +325,7 @@ const LocationPicker = ({ selectedPath = [], onPathChange, onRouteChange }) => {
       )}
 
       <div style={{ marginTop: '0.75rem', borderRadius: 8, overflow: 'hidden' }}>
-        <MapContainer center={center} zoom={13} style={{ height: 320, width: '100%' }}>
+        <MapContainer center={center} zoom={13} scrollWheelZoom={false} style={{ height: 320, width: '100%' }}>
           <TileLayer
             attribution='&copy; OpenStreetMap contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

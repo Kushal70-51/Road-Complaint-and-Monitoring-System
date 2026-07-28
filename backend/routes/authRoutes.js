@@ -6,8 +6,12 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const User = require("../models/User");
 const EmailVerification = require("../models/EmailVerification");
-const authMiddleware = require("../middleware/authMiddleware");
-const { sendOtpEmail } = require("../config/email");
+const ResetToken = require("../models/ResetToken");
+const authMiddlewareModule = require("../middleware/authMiddleware");
+const authMiddleware = authMiddlewareModule.authMiddleware || authMiddlewareModule;
+const { getJwtSecret } = authMiddlewareModule;
+const { sendOtpEmail, sendEmail } = require("../config/email");
+const { loginLimiter } = require("../middleware/rateLimiters");
 
 const router = express.Router();
 const OTP_EXPIRY_MINUTES = 5;
@@ -15,8 +19,12 @@ const VERIFIED_WINDOW_MINUTES = 15;
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const OTP_MAX_REQUESTS_PER_HOUR = 5;
 
-// Diagnostic endpoint - test if email works
+// Diagnostic endpoint - test if email works (dev/debug only)
 router.get("/test-email", async (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ error: "Not found" });
+  }
+
   try {
     const emailUser = process.env.EMAIL_USER;
     const emailPass = process.env.EMAIL_PASS;
@@ -62,7 +70,10 @@ router.get("/test-email", async (req, res) => {
 });
 
 const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+const generateRandomToken = () => crypto.randomBytes(32).toString("hex");
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
+
+const hashValue = (value) => crypto.createHash("sha256").update(String(value)).digest("hex");
 
 const maskEmail = (email) => {
   const value = normalizeEmail(email);
@@ -184,16 +195,18 @@ router.post("/send-otp", async (req, res) => {
       stack: process.env.NODE_ENV === "production" ? undefined : error.stack
     });
 
+    const isProd = process.env.NODE_ENV === "production";
     return res.status(500).json({
       message: "Failed to send OTP",
       error: "Failed to send OTP",
-      details: error.message,
-      code: error.code,
-      nodeEnv: process.env.NODE_ENV,
-      emailUser: process.env.EMAIL_USER ? "SET" : "MISSING",
-      emailPass: process.env.EMAIL_PASS ? "SET" : "MISSING",
-      resendApiKey: process.env.RESEND_API_KEY ? "SET" : "MISSING",
-      resendFrom: process.env.RESEND_FROM ? "SET" : "MISSING"
+      ...(isProd ? {} : {
+        details: error.message,
+        code: error.code,
+        emailUser: process.env.EMAIL_USER ? "SET" : "MISSING",
+        emailPass: process.env.EMAIL_PASS ? "SET" : "MISSING",
+        resendApiKey: process.env.RESEND_API_KEY ? "SET" : "MISSING",
+        resendFrom: process.env.RESEND_FROM ? "SET" : "MISSING"
+      })
     });
   }
 });
@@ -239,9 +252,119 @@ router.post("/verify-otp", async (req, res) => {
   }
 });
 
-router.post("/register", async (req, res) => {
-  console.log("[REGISTER] req.body:", req.body);
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const normalizedEmail = normalizeEmail(req.body?.email);
+    if (!normalizedEmail) {
+      return res.status(400).json({ error: "Email is required" });
+    }
 
+    const user = await User.findOne({ email: normalizedEmail });
+    if (user) {
+      const rawToken = generateRandomToken();
+      const tokenHash = hashValue(rawToken);
+      const expiry = new Date(Date.now() + 60 * 60 * 1000);
+
+      await ResetToken.findOneAndUpdate(
+        { user: user._id },
+        { user: user._id, token: tokenHash, expiresAt: expiry },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+      const resetUrl = `${frontendUrl.replace(/\/$/, "")}/reset-password?token=${rawToken}`;
+
+      await sendEmail({
+        toEmail: normalizedEmail,
+        subject: "Password Reset Request",
+        text: `We received a request to reset your password. Use the link below to set a new password (valid for 1 hour):\n\n${resetUrl}`
+      });
+    }
+
+    return res.json({
+      message: "If we found an account with that email, a password reset link has been sent."
+    });
+  } catch (error) {
+    console.error("[FORGOT_PASSWORD] ERROR:", error);
+    return res.status(500).json({ error: "Failed to process password reset request" });
+  }
+});
+
+router.post("/reset-password", async (req, res) => {
+  try {
+    const token = String(req.body?.token || "").trim();
+    const password = String(req.body?.password || "").trim();
+
+    if (!token || !password) {
+      return res.status(400).json({ error: "Token and password are required" });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters" });
+    }
+
+    const tokenHash = hashValue(token);
+    const resetRecord = await ResetToken.findOne({
+      token: tokenHash,
+      expiresAt: { $gt: new Date() }
+    }).populate("user");
+
+    if (!resetRecord || !resetRecord.user) {
+      return res.status(400).json({ error: "Invalid or expired token" });
+    }
+
+    const user = await User.findById(resetRecord.user._id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    await user.save();
+    await ResetToken.deleteOne({ _id: resetRecord._id });
+
+    return res.json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("[RESET_PASSWORD] ERROR:", error);
+    return res.status(500).json({ error: "Failed to reset password" });
+  }
+});
+
+router.put("/profile", authMiddleware, async (req, res) => {
+  try {
+    const { name, village } = req.body;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (typeof name === "string" && name.trim()) {
+      user.name = name.trim();
+    }
+    if (typeof village === "string" && village.trim()) {
+      user.village = village.trim();
+    }
+
+    await user.save();
+
+    return res.json({
+      message: "Profile updated successfully",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        mobile: user.mobile,
+        village: user.village,
+        isVerified: user.isVerified
+      }
+    });
+  } catch (error) {
+    console.error("[UPDATE_PROFILE] ERROR:", error);
+    return res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+router.post("/register", async (req, res) => {
   const { name, mobile, village, email, password } = req.body || {};
 
   const normalizedName = String(name || "").trim();
@@ -302,10 +425,9 @@ router.post("/register", async (req, res) => {
 
     await EmailVerification.deleteOne({ email: normalizedEmail });
 
-    // ✅ FIX: JWT_SECRET hardcoded fallback hataya, expiresIn add kiya
     const token = jwt.sign(
       { id: user._id },
-      process.env.JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: "7d" }
     );
 
@@ -337,16 +459,16 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   try {
     const { identifier, password } = req.body;
 
-    if (!identifier || !password) {
+    if (typeof identifier !== "string" || !identifier.trim() || typeof password !== "string" || !password) {
       return res.status(400).json({ error: "Email/mobile and password are required" });
     }
 
     const user = await User.findOne({
-      $or: [{ email: identifier?.toLowerCase() }, { mobile: identifier }]
+      $or: [{ email: identifier.toLowerCase() }, { mobile: identifier }]
     });
 
     if (!user) return res.status(400).json({ error: "Invalid credentials" });
@@ -363,10 +485,9 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // ✅ FIX: JWT_SECRET hardcoded fallback hataya, expiresIn add kiya
     const token = jwt.sign(
       { id: user._id },
-      process.env.JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: "7d" }
     );
 

@@ -8,6 +8,7 @@ const authRoutes = require("./routes/authRoutes");
 const complaintRoutes = require("./routes/complaintRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const contactRoutes = require("./routes/contactRoutes");
 
 const fs = require("fs");
 const app = express();
@@ -85,30 +86,37 @@ if (hasFrontendBuild) {
 const start = async () => {
   await connectDB();
 
-  // Ensure the configured super admin can always log in.
-  // In development/demo setups this prevents stale DB passwords
-  // from breaking documented default credentials.
+  // Bootstrap a super admin account if none exists yet. This only ever
+  // creates the account - it does not touch the password of an existing
+  // account, so changing the super admin's password via the app (or via
+  // another admin) sticks across restarts instead of being silently
+  // reverted back to the env-var value.
   try {
     const Admin = require("./models/Admin");
     const bcrypt = require("bcryptjs");
 
     const username = process.env.SUPER_ADMIN_USERNAME || "admin";
     const password = process.env.SUPER_ADMIN_PASSWORD || "admin123";
+    const usingDefaults = !process.env.SUPER_ADMIN_USERNAME || !process.env.SUPER_ADMIN_PASSWORD;
+
     const existingSuperAdmin = await Admin.findOne({ username });
 
     if (!existingSuperAdmin) {
       const hashed = await bcrypt.hash(password, 10);
       await Admin.create({ username, password: hashed, role: "superadmin" });
       console.log("✅ Super admin created:", username);
-    } else {
-      const isPasswordMatch = await bcrypt.compare(password, existingSuperAdmin.password);
+    } else if (existingSuperAdmin.role !== "superadmin") {
+      existingSuperAdmin.role = "superadmin";
+      await existingSuperAdmin.save();
+      console.log("✅ Super admin role corrected:", username);
+    }
 
-      if (!isPasswordMatch || existingSuperAdmin.role !== "superadmin") {
-        existingSuperAdmin.password = await bcrypt.hash(password, 10);
-        existingSuperAdmin.role = "superadmin";
-        await existingSuperAdmin.save();
-        console.log("✅ Super admin credentials synchronized:", username);
-      }
+    if (usingDefaults) {
+      const warn = process.env.NODE_ENV === "production" ? console.error : console.warn;
+      warn(
+        "⚠️  SUPER_ADMIN_USERNAME/SUPER_ADMIN_PASSWORD are not set - using insecure defaults (admin/admin123). " +
+        "Set both env vars and change the password via the admin panel."
+      );
     }
   } catch (err) {
     console.error("Error during superadmin initialization:", err);
@@ -119,6 +127,7 @@ const start = async () => {
   app.use("/api/complaints", complaintRoutes);
   app.use("/api/admin", adminRoutes);
   app.use("/api/chat", chatRoutes);
+  app.use("/api/contact", contactRoutes);
 
   // Always return JSON for unknown API routes
   app.use("/api", (req, res) => {

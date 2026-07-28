@@ -1,21 +1,29 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { adminService } from '../services/api';
+import { adminService, resolveImageUrl } from '../services/api';
+import { validateFileSize, validateFileType } from '../utils/validators';
+import { formatDate, formatDateTime } from '../utils/formatDate';
 import './adminDashboard.css';
 
 const AdminProfile = () => {
-  const { user: admin, updateProfile } = useContext(AuthContext);
+  const { user: admin, updateProfile, logout: doLogout } = useContext(AuthContext);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [adminForm, setAdminForm] = useState({ username: '', password: '', confirmPassword: '' });
+  const [profileForm, setProfileForm] = useState({ name: '' });
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
+  const [avatarError, setAvatarError] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
   const [admins, setAdmins] = useState([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const fileInputRef = useRef(null);
 
-  const { logout: doLogout } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -74,6 +82,44 @@ const AdminProfile = () => {
     setAdminForm({ username: '', password: '', confirmPassword: '' });
     setMessage('');
     setError('');
+  };
+
+  const openEditProfileModal = () => {
+    setProfileForm({ name: admin?.name || '' });
+    setAvatarFile(null);
+    setAvatarPreview(resolveImageUrl(admin?.avatarUrl));
+    setAvatarError('');
+    setMessage('');
+    setError('');
+    setShowEditProfileModal(true);
+  };
+
+  const closeEditProfileModal = () => {
+    setShowEditProfileModal(false);
+    setAvatarFile(null);
+    setAvatarPreview('');
+    setAvatarError('');
+    setMessage('');
+    setError('');
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!validateFileSize(file, 2)) {
+      setAvatarError('Photo must be 2MB or smaller');
+      return;
+    }
+
+    if (!validateFileType(file, ['image/jpeg', 'image/png', 'image/gif', 'image/webp'])) {
+      setAvatarError('Only JPG, PNG, GIF or WEBP images are allowed');
+      return;
+    }
+
+    setAvatarError('');
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
   };
 
   const handlePasswordChange = e => {
@@ -149,13 +195,39 @@ const AdminProfile = () => {
 
   const deleteAdmin = async (adminId) => {
     if (!window.confirm('Are you sure you want to delete this admin user?')) return;
-    
+
     try {
       await adminService.deleteAdmin(adminId);
       setMessage('Admin user deleted successfully!');
       fetchAdmins();
     } catch (err) {
       setError(err.message || 'Failed to delete admin');
+    }
+  };
+
+  const submitProfileEdit = async (e) => {
+    e.preventDefault();
+    setMessage('');
+    setError('');
+    setSavingProfile(true);
+
+    try {
+      const data = new FormData();
+      data.append('name', profileForm.name.trim());
+      if (avatarFile) {
+        data.append('avatar', avatarFile);
+      }
+
+      const response = await adminService.updateProfile(data);
+      if (response.admin) {
+        updateProfile(response.admin);
+      }
+      setMessage('Profile updated successfully!');
+      setTimeout(() => closeEditProfileModal(), 1200);
+    } catch (err) {
+      setError(err.message || 'Failed to update profile');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -173,25 +245,111 @@ const AdminProfile = () => {
     load();
   }, [updateProfile]);
 
+  const isSuperAdmin = admin?.role === 'superadmin';
+  const avatarUrl = resolveImageUrl(admin?.avatarUrl);
+  const displayName = admin?.name || admin?.username || 'Admin';
+
   return (
     <div className="admin-dashboard">
       {/* Profile header */}
       <div className="admin-profile-card">
-        <div className="profile-avatar">
-          <i className="profile-icon">👤</i>
-        </div>
+        <button type="button" className="profile-avatar profile-avatar-button" onClick={openEditProfileModal} title="Edit profile photo">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={displayName} className="profile-avatar-img" />
+          ) : (
+            <i className="profile-icon">👤</i>
+          )}
+          <span className="profile-avatar-edit-badge">✏️</span>
+        </button>
         <div className="profile-info">
-          <h2>Welcome, <span className="admin-name">{admin?.username || 'Admin'}</span></h2>
-          <p className="profile-subtitle">Administrator Account</p>
+          <h2>Welcome, <span className="admin-name">{displayName}</span></h2>
+          {admin?.name && <p className="profile-subtitle">@{admin.username}</p>}
           <p className="profile-role">Role: <span className="role-text">{admin?.role || 'admin'}</span></p>
+          <div className="profile-meta">
+            {admin?.createdAt && <span>🗓️ Member since {formatDate(admin.createdAt)}</span>}
+            {admin?.lastLoginAt && <span>🕒 Last login {formatDateTime(admin.lastLoginAt)}</span>}
+          </div>
         </div>
         <button className="btn btn-logout" onClick={logout}>Logout</button>
       </div>
 
-      <div className="action-buttons">
-        <button className="btn btn-secondary" onClick={openPasswordModal}>Change Admin Password</button>
-        <button className="btn btn-secondary" onClick={openAdminModal}>Manage Admin Users</button>
+      <div className="table-card admin-quick-actions">
+        <h3>Quick Actions</h3>
+        <div className="action-buttons">
+          <button className="btn btn-secondary" onClick={openEditProfileModal}>🖼️ Edit Profile</button>
+          <button className="btn btn-secondary" onClick={openPasswordModal}>🔑 Change Admin Password</button>
+          {isSuperAdmin && (
+            <button className="btn btn-secondary" onClick={openAdminModal}>👥 Manage Admin Users</button>
+          )}
+          <Link to="/admin" className="btn btn-primary">📋 Go to Complaint Dashboard</Link>
+        </div>
+        {!isSuperAdmin && (
+          <p className="admin-quick-actions-hint">Managing admin users requires superadmin privileges.</p>
+        )}
       </div>
+
+      {/* Edit Profile modal */}
+      {showEditProfileModal && (
+        <div className="modal-overlay" onClick={closeEditProfileModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Edit Profile</h2>
+              <button className="modal-close" onClick={closeEditProfileModal}>×</button>
+            </div>
+            <form onSubmit={submitProfileEdit} className="modal-form">
+              {message && <div className="success-message">{message}</div>}
+              {error && <div className="error-message">{error}</div>}
+
+              <div className="avatar-upload-row">
+                <div className="avatar-upload-preview">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Avatar preview" />
+                  ) : (
+                    <i className="profile-icon">👤</i>
+                  )}
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-small"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Change Photo
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    style={{ display: 'none' }}
+                  />
+                  <p className="help-text">JPG, PNG, GIF or WEBP. Max 2MB.</p>
+                  {avatarError && <span className="error">{avatarError}</span>}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Display Name</label>
+                <input
+                  type="text"
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm({ name: e.target.value })}
+                  placeholder="e.g., Priya Sharma"
+                  maxLength={60}
+                />
+                <p className="help-text">Shown instead of your username across the admin panel. Your login username (@{admin?.username}) stays the same.</p>
+              </div>
+
+              <div className="modal-actions">
+                <button type="submit" className="btn btn-primary" disabled={savingProfile}>
+                  {savingProfile ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={closeEditProfileModal}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Password modal */}
       {showPasswordModal && (
@@ -257,7 +415,7 @@ const AdminProfile = () => {
             <div className="modal-content">
               {message && <div className="success-message">{message}</div>}
               {error && <div className="error-message">{error}</div>}
-              
+
               <div className="create-admin-section">
                 <h3>Create New Admin User</h3>
                 <form onSubmit={submitCreateAdmin} className="create-admin-form">
@@ -315,15 +473,15 @@ const AdminProfile = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {admins.map(admin => (
-                        <tr key={admin._id}>
-                          <td>{admin.username}</td>
-                          <td><span className="role-badge">{admin.role}</span></td>
-                          <td>{new Date(admin.createdAt).toLocaleDateString()}</td>
+                      {admins.map(a => (
+                        <tr key={a._id}>
+                          <td>{a.name ? `${a.name} (@${a.username})` : a.username}</td>
+                          <td><span className="role-badge">{a.role}</span></td>
+                          <td>{new Date(a.createdAt).toLocaleDateString()}</td>
                           <td>
                             {admins.length > 1 && (
                               <button
-                                onClick={() => deleteAdmin(admin._id)}
+                                onClick={() => deleteAdmin(a._id)}
                                 className="btn btn-small btn-danger"
                               >
                                 Delete
@@ -344,10 +502,6 @@ const AdminProfile = () => {
           </div>
         </div>
       )}
-
-      <div className="view-complaints-button">
-        <Link to="/admin" className="btn btn-primary">Go to Complaint Dashboard</Link>
-      </div>
     </div>
   );
 };

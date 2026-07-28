@@ -27,6 +27,7 @@ import ComplaintDetail from './pages/ComplaintDetail';
 
 // Styles
 import './styles/global.css';
+import './styles/animations.css';
 
 function App() {
   return (

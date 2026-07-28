@@ -95,7 +95,7 @@ const ComplaintLocationMap = ({ path = [], routePath = [], lat, lng, height = 28
 
   return (
     <div>
-      <MapContainer center={center} zoom={15} style={{ height, width: '100%' }}>
+      <MapContainer center={center} zoom={15} scrollWheelZoom={false} style={{ height, width: '100%' }}>
         <TileLayer
           attribution='&copy; OpenStreetMap contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

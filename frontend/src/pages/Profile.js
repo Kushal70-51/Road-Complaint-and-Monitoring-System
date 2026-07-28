@@ -1,5 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { authService } from '../services/api';
 
 const Profile = () => {
   const { user, updateProfile } = useContext(AuthContext);
@@ -12,6 +14,17 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        mobile: user.mobile || '',
+        email: user.email || '',
+        village: user.village || ''
+      });
+    }
+  }, [user]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -22,11 +35,14 @@ const Profile = () => {
     setLoading(true);
     
     try {
-      // Update profile API call here
-      updateProfile({ ...user, ...formData });
+      const response = await authService.updateProfile({
+        name: formData.name,
+        village: formData.village
+      });
+      updateProfile(response.user);
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update profile' });
+      setMessage({ type: 'error', text: error.message || 'Failed to update profile' });
     } finally {
       setLoading(false);
     }
@@ -90,7 +106,7 @@ const Profile = () => {
         </form>
 
         <div className="profile-footer">
-          <a href="/dashboard">Back to Dashboard</a>
+          <Link to="/dashboard">Back to Dashboard</Link>
         </div>
       </div>
     </div>

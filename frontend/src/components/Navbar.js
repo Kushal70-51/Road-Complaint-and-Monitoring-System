@@ -1,22 +1,11 @@
 import React, { useContext, useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
 const Navbar = () => {
-  const navigate = useNavigate();
-  const { isAuthenticated, user, logout } = useContext(AuthContext);
+  const { isAuthenticated, user } = useContext(AuthContext);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const location = useLocation();
   const isAdminUser = Boolean(user && ['admin', 'superadmin'].includes(user.role));
-
-  // determine if current route is an admin page
-  const isAdminRoute = location.pathname.startsWith('/admin');
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-    setIsMobileMenuOpen(false);
-  };
 
   return (
     <>

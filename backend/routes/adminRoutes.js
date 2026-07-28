@@ -1,21 +1,39 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
 const Admin = require("../models/Admin");
 const Complaint = require("../models/Complaint");
 const User = require("../models/User");
+const cloudinary = require("../config/cloudinary");
+const { getJwtSecret } = require("../middleware/authMiddleware");
+const { logAudit } = require("../utils/auditLog");
+const { loginLimiter, createAdminLimiter } = require("../middleware/rateLimiters");
 
 const router = express.Router();
+
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only JPG, PNG, GIF and WEBP are allowed"));
+    }
+  }
+});
 
 // Middleware to check admin authentication
 const adminAuthMiddleware = (req, res, next) => {
   const authHeader = req.header("Authorization") || "";
   const token = authHeader.replace("Bearer ", "");
-  
+
   if (!token) return res.status(401).json({ error: "No token provided" });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret");
+    const decoded = jwt.verify(token, getJwtSecret());
     req.admin = decoded;
     next();
   } catch (err) {
@@ -23,24 +41,36 @@ const adminAuthMiddleware = (req, res, next) => {
   }
 };
 
+// Only a superadmin may manage other admin accounts
+const requireSuperAdmin = (req, res, next) => {
+  if (req.admin?.role !== "superadmin") {
+    return res.status(403).json({ error: "Superadmin privileges required" });
+  }
+  next();
+};
+
 // Utility route to create a new admin account.
 // If there are no admins in the system this endpoint is open so the first
 // administrator can be bootstrapped. Once at least one admin exists, further
-// calls require an authenticated admin token in the Authorization header.
-router.post("/create-admin", async (req, res) => {
+// calls require an authenticated superadmin token in the Authorization header.
+router.post("/create-admin", createAdminLimiter, async (req, res) => {
   try {
     const { username = "admin", password = "admin123" } = req.body;
 
-    // if admins already exist, enforce authentication
+    // if admins already exist, enforce superadmin authentication
     const count = await Admin.countDocuments();
     if (count > 0) {
       const authHeader = req.header("Authorization") || "";
       const token = authHeader.replace("Bearer ", "");
       if (!token) return res.status(401).json({ error: "No token provided" });
+      let decoded;
       try {
-        jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret");
+        decoded = jwt.verify(token, getJwtSecret());
       } catch (err) {
         return res.status(401).json({ error: "Invalid token" });
+      }
+      if (decoded.role !== "superadmin") {
+        return res.status(403).json({ error: "Superadmin privileges required" });
       }
     }
 
@@ -50,6 +80,7 @@ router.post("/create-admin", async (req, res) => {
     }
     const hashed = await bcrypt.hash(password, 10);
     const admin = await Admin.create({ username, password: hashed });
+    await logAudit(username, "ADMIN_CREATED", admin._id);
     res.json({ message: "Admin created", admin });
   } catch (err) {
     console.error(err);
@@ -57,34 +88,8 @@ router.post("/create-admin", async (req, res) => {
   }
 });
 
-// Register a new admin (for initial setup)
-router.post("/register", async (req, res) => {
-  try {
-    const { username, password } = req.body;
-
-    const existingAdmin = await Admin.findOne({ username });
-    if (existingAdmin) {
-      return res.status(400).json({ error: "Admin already exists" });
-    }
-
-    const hashed = await bcrypt.hash(password, 10);
-    const admin = await Admin.create({ username, password: hashed });
-
-    const token = jwt.sign({ id: admin._id, username: admin.username }, process.env.JWT_SECRET || "your_jwt_secret");
-
-    res.json({
-      message: "Admin registered successfully",
-      token,
-      admin: { _id: admin._id, username: admin.username, role: admin.role }
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(400).json({ error: "Admin registration failed" });
-  }
-});
-
 // Admin login
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -98,12 +103,29 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ id: admin._id, username: admin.username }, process.env.JWT_SECRET || "your_jwt_secret");
+    const token = jwt.sign(
+      { id: admin._id, username: admin.username, role: admin.role },
+      getJwtSecret(),
+      { expiresIn: "7d" }
+    );
+
+    admin.lastLoginAt = new Date();
+    await admin.save();
+
+    await logAudit(admin.username, "ADMIN_LOGIN", admin._id);
 
     res.json({
       message: "Admin logged in successfully",
       token,
-      admin: { _id: admin._id, username: admin.username, role: admin.role }
+      admin: {
+        _id: admin._id,
+        username: admin.username,
+        role: admin.role,
+        name: admin.name,
+        avatarUrl: admin.avatarUrl,
+        lastLoginAt: admin.lastLoginAt,
+        createdAt: admin.createdAt
+      }
     });
   } catch (err) {
     console.error(err);
@@ -114,7 +136,7 @@ router.post("/login", async (req, res) => {
 // Get all complaints (admin only)
 router.get("/complaints", adminAuthMiddleware, async (req, res) => {
   try {
-    const { status, location, page = 1, limit = 10 } = req.query;
+    const { status, location } = req.query;
 
     let query = {};
 
@@ -126,13 +148,15 @@ router.get("/complaints", adminAuthMiddleware, async (req, res) => {
       query.location = { $regex: location, $options: "i" };
     }
 
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 10));
     const skip = (page - 1) * limit;
 
     const complaints = await Complaint.find(query)
       .populate("user", "name email mobile village")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(limit);
 
     const total = await Complaint.countDocuments(query);
 
@@ -140,8 +164,8 @@ router.get("/complaints", adminAuthMiddleware, async (req, res) => {
       complaints,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page,
+        limit,
         pages: Math.ceil(total / limit)
       }
     });
@@ -186,6 +210,8 @@ router.put("/complaints/:id/status", adminAuthMiddleware, async (req, res) => {
       return res.status(404).json({ error: "Complaint not found" });
     }
 
+    await logAudit(req.admin?.username, `COMPLAINT_STATUS_${status.toUpperCase().replace(/\s+/g, "_")}`, complaint._id);
+
     res.json({
       message: "Complaint status updated successfully",
       complaint
@@ -203,6 +229,7 @@ router.delete("/complaints/:id", adminAuthMiddleware, async (req, res) => {
     if (!complaint) {
       return res.status(404).json({ error: "Complaint not found" });
     }
+    await logAudit(req.admin?.username, "COMPLAINT_DELETED", req.params.id);
     res.json({ message: "Complaint deleted successfully" });
   } catch (err) {
     console.error(err);
@@ -257,6 +284,59 @@ router.get("/profile", adminAuthMiddleware, async (req, res) => {
   }
 });
 
+// Update current admin's profile (name + avatar photo)
+router.put("/profile", adminAuthMiddleware, (req, res, next) => {
+  avatarUpload.single("avatar")(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || "Avatar upload failed" });
+    }
+    next();
+  });
+}, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id);
+    if (!admin) {
+      return res.status(404).json({ error: "Admin not found" });
+    }
+
+    if (typeof req.body.name === "string") {
+      admin.name = req.body.name.trim().slice(0, 60);
+    }
+
+    if (req.file) {
+      try {
+        const uploadResult = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { folder: "admin_avatars", resource_type: "image" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          uploadStream.end(req.file.buffer);
+        });
+        admin.avatarUrl = uploadResult.secure_url;
+      } catch (cloudinaryError) {
+        console.error("Avatar upload error:", cloudinaryError);
+        return res.status(400).json({ error: "Avatar upload failed" });
+      }
+    }
+
+    await admin.save();
+    await logAudit(admin.username, "ADMIN_PROFILE_UPDATED", admin._id);
+
+    const { password, ...adminWithoutPassword } = admin.toObject();
+
+    res.json({
+      message: "Profile updated successfully",
+      admin: adminWithoutPassword
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: "Failed to update profile" });
+  }
+});
+
 // Change admin password (admin only)
 router.put("/change-password", adminAuthMiddleware, async (req, res) => {
   try {
@@ -286,6 +366,8 @@ router.put("/change-password", adminAuthMiddleware, async (req, res) => {
     admin.password = hashedPassword;
     await admin.save();
 
+    await logAudit(admin.username, "ADMIN_PASSWORD_CHANGED", admin._id);
+
     res.json({ message: "Password changed successfully" });
   } catch (err) {
     console.error(err);
@@ -293,8 +375,8 @@ router.put("/change-password", adminAuthMiddleware, async (req, res) => {
   }
 });
 
-// Delete an admin user (admin only)
-router.delete("/admins/:id", adminAuthMiddleware, async (req, res) => {
+// Delete an admin user (superadmin only)
+router.delete("/admins/:id", adminAuthMiddleware, requireSuperAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -313,6 +395,8 @@ router.delete("/admins/:id", adminAuthMiddleware, async (req, res) => {
     if (!admin) {
       return res.status(404).json({ error: "Admin not found" });
     }
+
+    await logAudit(req.admin.username, "ADMIN_DELETED", id);
 
     res.json({ message: "Admin deleted successfully" });
   } catch (err) {

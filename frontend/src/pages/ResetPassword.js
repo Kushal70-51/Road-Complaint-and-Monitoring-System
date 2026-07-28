@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { authService } from '../services/api';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
-  
+
   const [formData, setFormData] = useState({
     password: '',
     confirmPassword: ''
   });
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [message, setMessage] = useState(
+    token ? { type: '', text: '' } : { type: 'error', text: 'This password reset link is invalid or missing a token. Please request a new one.' }
+  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -21,6 +23,11 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!token) {
+      setMessage({ type: 'error', text: 'This password reset link is invalid or missing a token. Please request a new one.' });
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setMessage({ type: 'error', text: 'Passwords do not match' });
@@ -35,7 +42,7 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      const response = await authService.resetPassword(token, formData.password);
+      await authService.resetPassword(token, formData.password);
       setMessage({ type: 'success', text: 'Password reset successfully!' });
       setTimeout(() => navigate('/login'), 2000);
     } catch (error) {
@@ -85,13 +92,14 @@ const ResetPassword = () => {
             />
           </div>
 
-          <button type="submit" disabled={loading} className="btn btn-primary">
+          <button type="submit" disabled={loading || !token} className="btn btn-primary">
             {loading ? 'Resetting...' : 'Reset Password'}
           </button>
         </form>
 
         <div className="auth-footer">
-          <p><a href="/login">Back to Login</a></p>
+          <p><Link to="/forgot-password">Request a new reset link</Link></p>
+          <p><Link to="/login">Back to Login</Link></p>
         </div>
       </div>
     </div>

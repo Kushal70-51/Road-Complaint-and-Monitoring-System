@@ -10,6 +10,14 @@ const normalizedApiOrigin = rawApiBase.replace(/\/api$/i, "");
 export const API_ASSET_BASE_URL = normalizedApiOrigin;
 export const API_BASE_URL = `${normalizedApiOrigin}/api`;
 
+// Complaint images are stored as full Cloudinary URLs; older records may still
+// hold a bare filename served from the legacy local /uploads folder.
+export const resolveImageUrl = (image) => {
+  if (!image) return '';
+  if (/^https?:\/\//i.test(image)) return image;
+  return `${API_ASSET_BASE_URL}/uploads/${encodeURIComponent(image)}`;
+};
+
 const getAuthToken = () => {
   const rawToken = localStorage.getItem("token");
 
@@ -43,12 +51,23 @@ const handleResponse = async (response) => {
 
   if (!contentType.includes('application/json')) {
     const endpoint = response.url || 'API endpoint';
-    throw new Error(`Expected JSON from ${endpoint}, but received non-JSON response.`);
+    const error = new Error(`Expected JSON from ${endpoint}, but received non-JSON response.`);
+    error.status = response.status;
+    throw error;
   }
 
   const data = responseText ? JSON.parse(responseText) : {};
   if (!response.ok) {
-    throw new Error(data.error || data.message || 'An error occurred');
+    const error = new Error(data.error || data.message || 'An error occurred');
+    error.status = response.status;
+
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new Event('auth-expired'));
+    }
+
+    throw error;
   }
   return data;
 };
@@ -120,6 +139,15 @@ export const authService = {
     return handleResponse(response);
   },
 
+  updateProfile: async (data) => {
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(response);
+  },
+
   forgotPassword: async (email) => {
     const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
       method: 'POST',
@@ -186,15 +214,6 @@ export const complaintService = {
 
 // Admin Service
 export const adminService = {
-  register: async (credentials) => {
-    const response = await fetch(`${API_BASE_URL}/admin/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials)
-    });
-    return handleResponse(response);
-  },
-
   login: async (credentials) => {
     const response = await fetch(`${API_BASE_URL}/admin/login`, {
       method: 'POST',
@@ -285,6 +304,28 @@ export const adminService = {
     const response = await fetch(`${API_BASE_URL}/admin/profile`, {
       method: 'GET',
       headers: getHeaders()
+    });
+    return handleResponse(response);
+  },
+
+  updateProfile: async (formData) => {
+    const token = getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/admin/profile`, {
+      method: 'PUT',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData
+    });
+    return handleResponse(response);
+  }
+};
+
+// Contact Service
+export const contactService = {
+  sendMessage: async (data) => {
+    const response = await fetch(`${API_BASE_URL}/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     });
     return handleResponse(response);
   }

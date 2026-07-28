@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -8,29 +9,29 @@ const Footer = () => {
       <div className="footer-container">
         <div className="footer-section">
           <h4>About Portal</h4>
-          <a href="/about">About Us</a>
-          <a href="/">Portal Features</a>
-          <a href="/">How It Works</a>
+          <Link to="/about">About Us</Link>
+          <Link to="/">Portal Features</Link>
+          <Link to="/">How It Works</Link>
         </div>
         <div className="footer-section">
           <h4>Quick Links</h4>
-          <a href="/register">Register</a>
-          <a href="/login">Login</a>
-          <a href="/map">View Map</a>
-          <a href="/dashboard">Dashboard</a>
+          <Link to="/register">Register</Link>
+          <Link to="/login">Login</Link>
+          <Link to="/map">View Map</Link>
+          <Link to="/dashboard">Dashboard</Link>
         </div>
         <div className="footer-section">
           <h4>Support</h4>
-          <a href="/help">Help & FAQ</a>
-          <a href="/contact">Contact Us</a>
-          <a href="/">Report Issue</a>
+          <Link to="/help">Help & FAQ</Link>
+          <Link to="/contact">Contact Us</Link>
+          <Link to="/">Report Issue</Link>
         </div>
         <div className="footer-section">
           <h4>Government</h4>
-          <a href="/">Official Website</a>
-          <a href="/">Privacy Policy</a>
-          <a href="/">Terms of Service</a>
-          <a href="/">Feedback</a>
+          <Link to="/">Official Website</Link>
+          <Link to="/">Privacy Policy</Link>
+          <Link to="/">Terms of Service</Link>
+          <Link to="/">Feedback</Link>
         </div>
       </div>
       <div className="footer-bottom">

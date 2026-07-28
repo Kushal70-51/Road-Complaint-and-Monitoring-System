@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend
+} from 'chart.js';
 import { complaintService } from '../services/api';
 import Loader from '../components/Loader';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 const Stats = () => {
   const [stats, setStats] = useState({
@@ -10,6 +22,7 @@ const Stats = () => {
     resolved: 0
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchStats();
@@ -18,6 +31,7 @@ const Stats = () => {
   const fetchStats = async () => {
     try {
       setLoading(true);
+      setError('');
       const response = await complaintService.getComplaints();
       const complaints = response.complaints || [];
 
@@ -29,8 +43,9 @@ const Stats = () => {
       };
 
       setStats(statData);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+      setError(err.message || 'Failed to load your statistics. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -40,12 +55,38 @@ const Stats = () => {
     return <Loader message="Loading your statistics..." />;
   }
 
+  const chartData = {
+    labels: ['Pending', 'In Progress', 'Resolved'],
+    datasets: [
+      {
+        label: 'Complaints',
+        data: [stats.pending, stats.inProgress, stats.resolved],
+        backgroundColor: ['#FFC107', '#2196F3', '#4CAF50']
+      }
+    ]
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: false }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { precision: 0 }
+      }
+    }
+  };
+
   return (
     <div className="stats-page">
       <div className="stats-header">
         <h1>My Complaint Statistics</h1>
         <p>Overview of your complaint activity</p>
       </div>
+
+      {error && <div className="alert alert-error">{error}</div>}
 
       <div className="stats-grid">
         <div className="stat-card">
@@ -66,9 +107,15 @@ const Stats = () => {
         </div>
       </div>
 
+      {stats.total > 0 && (
+        <div className="stats-chart" style={{ maxWidth: 480, margin: '2rem auto' }}>
+          <Bar data={chartData} options={chartOptions} />
+        </div>
+      )}
+
       <div className="stats-actions">
-        <a href="/dashboard" className="btn btn-primary">View All Complaints</a>
-        <a href="/upload" className="btn btn-secondary">Submit New Complaint</a>
+        <Link to="/dashboard" className="btn btn-primary">View All Complaints</Link>
+        <Link to="/upload" className="btn btn-secondary">Submit New Complaint</Link>
       </div>
     </div>
   );

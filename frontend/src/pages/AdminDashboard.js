@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { adminService, API_BASE_URL } from '../services/api';
+import { adminService, resolveImageUrl } from '../services/api';
 import ComplaintLocationMap from '../components/ComplaintLocationMap';
 import './adminDashboard.css';
 
@@ -12,22 +12,27 @@ const AdminDashboard = () => {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [selectedComplaintPath, setSelectedComplaintPath] = useState([]);
   const [selectedComplaintRoutePath, setSelectedComplaintRoutePath] = useState([]);
+  const [error, setError] = useState('');
+  const [mapNotice, setMapNotice] = useState('');
 
   const handleChange = e => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
   const clearFilters = () => {
-    setFilters({ location: '', status: '' });
-    fetchComplaints();
+    const cleared = { location: '', status: '' };
+    setFilters(cleared);
+    fetchComplaints(cleared);
   };
 
-  const fetchComplaints = async () => {
+  const fetchComplaints = async (overrideFilters) => {
     try {
-      const data = await adminService.getComplaints(filters);
+      setError('');
+      const data = await adminService.getComplaints(overrideFilters || filters);
       setComplaints(data.complaints || []);
     } catch (err) {
       console.error('fetch complaints', err);
+      setError(err.message || 'Failed to load complaints. Please try again.');
     }
   };
 
@@ -61,6 +66,7 @@ const AdminDashboard = () => {
       fetchComplaints();
     } catch (err) {
       console.error('status update', err);
+      setError(err.message || 'Failed to update status.');
     }
   };
 
@@ -71,13 +77,14 @@ const AdminDashboard = () => {
       fetchComplaints();
     } catch (err) {
       console.error('delete complaint', err);
+      setError(err.message || 'Failed to delete complaint.');
     }
   };
 
-  const viewImage = (filename) => {
+  const viewImage = (image) => {
     // open image in modal viewer
-    if (filename) {
-      setModalImage(`${serverBase}/uploads/${encodeURIComponent(filename)}`);
+    if (image) {
+      setModalImage(resolveImageUrl(image));
       setShowModal(true);
     }
   };
@@ -94,10 +101,13 @@ const AdminDashboard = () => {
     const actualRoadRoute = Array.isArray(complaint.routePath)
       ? complaint.routePath
       : [];
-    const fallbackLat = complaint.lat ?? complaint.latitude;
-    const fallbackLng = complaint.lng ?? complaint.longitude;
+    const fallbackLat = Number(complaint.lat ?? complaint.latitude);
+    const fallbackLng = Number(complaint.lng ?? complaint.longitude);
+    const hasFallback = Number.isFinite(fallbackLat) && Number.isFinite(fallbackLng);
 
-    if (roadPath.length === 0 && actualRoadRoute.length === 0 && (typeof fallbackLat !== 'number' || typeof fallbackLng !== 'number')) {
+    if (roadPath.length === 0 && actualRoadRoute.length === 0 && !hasFallback) {
+      setMapNotice('This complaint has no saved location data.');
+      setTimeout(() => setMapNotice(''), 3000);
       return;
     }
 
@@ -129,9 +139,7 @@ const AdminDashboard = () => {
   // initial load
   React.useEffect(() => {
     fetchComplaints();
-  }, []);
-
-  const serverBase = API_BASE_URL.replace(/\/api$/, '');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="admin-dashboard">
@@ -141,6 +149,9 @@ const AdminDashboard = () => {
           <p>Review and manage user complaints</p>
         </div>
       </div>
+
+      {error && <div className="alert alert-error">{error}</div>}
+      {mapNotice && <div className="alert alert-error">{mapNotice}</div>}
 
       <div className="complaints-section">
         <div className="filter-card">
@@ -186,7 +197,7 @@ const AdminDashboard = () => {
                   <td>
                     {item.image ? (
                       <img
-                        src={`${serverBase}/uploads/${encodeURIComponent(item.image)}`}
+                        src={resolveImageUrl(item.image)}
                         alt="complaint"
                         className="thumb"
                         onClick={() => viewImage(item.image)}

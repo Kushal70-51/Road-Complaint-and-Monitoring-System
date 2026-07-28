@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { authService } from '../services/api';
 import { validateForm } from '../utils/validators';
@@ -25,16 +25,12 @@ const Register = () => {
   const [otp, setOtp] = useState('');
 
   useEffect(() => {
-    if (otpCooldown <= 0) {
-      return undefined;
-    }
-
     const timer = setInterval(() => {
       setOtpCooldown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [otpCooldown]);
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -303,7 +299,7 @@ const Register = () => {
         </form>
 
         <div className="auth-footer">
-          <p>Already have an account? <a href="/login">Login here</a></p>
+          <p>Already have an account? <Link to="/login">Login here</Link></p>
         </div>
       </div>
     </div>

@@ -1,9 +1,10 @@
-import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useContext, useCallback, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { complaintService } from '../services/api';
 import { validateFileSize, validateFileType } from '../utils/validators';
 import LocationPicker from '../components/LocationPicker';
+import AICategorizationBadge from '../components/AICategorizationBadge';
 
 const Upload = () => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ const Upload = () => {
     image: null,
     location: '',
     description: '',
+    category: 'Other',
     severity: 'Medium',
     lat: '',
     lng: '',
@@ -22,6 +24,7 @@ const Upload = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState('');
+  const categoryTouched = useRef(false);
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
@@ -44,11 +47,14 @@ const Upload = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'category') {
+      categoryTouched.current = true;
+    }
     setFormData(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const handlePathChange = (path) => {
+  const handlePathChange = useCallback((path) => {
     const firstPoint = path[0];
     setFormData(prev => ({
       ...prev,
@@ -57,9 +63,9 @@ const Upload = () => {
       lng: firstPoint ? String(firstPoint.lng) : ''
     }));
     setErrors(prev => ({ ...prev, coords: '' }));
-  };
+  }, []);
 
-  const handleRouteChange = (routePath) => {
+  const handleRouteChange = useCallback((routePath) => {
     const normalizedRoutePath = Array.isArray(routePath)
       ? routePath
           .map((point) => {
@@ -80,7 +86,12 @@ const Upload = () => {
       ...prev,
       routePath: normalizedRoutePath
     }));
-  };
+  }, []);
+
+  const handleCategoryDetected = useCallback((category) => {
+    if (categoryTouched.current) return;
+    setFormData(prev => ({ ...prev, category }));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -106,6 +117,7 @@ const Upload = () => {
       data.append('image', formData.image);
       data.append('location', formData.location);
       data.append('description', formData.description);
+      data.append('category', formData.category);
       data.append('severity', formData.severity);
       data.append('path', JSON.stringify(formData.path));
       data.append('routePath', JSON.stringify(formData.routePath));
@@ -118,7 +130,7 @@ const Upload = () => {
         data.append('longitude', formData.lng);
       }
 
-      const response = await complaintService.uploadComplaint(data);
+      await complaintService.uploadComplaint(data);
       navigate('/dashboard');
     } catch (error) {
       setServerError(error.message || 'Upload failed');
@@ -190,6 +202,30 @@ const Upload = () => {
             {errors.description && <span className="error">{errors.description}</span>}
           </div>
 
+          <AICategorizationBadge 
+            description={formData.description}
+            severity={formData.severity}
+            onCategoryDetected={handleCategoryDetected}
+          />
+
+          <div className="form-group">
+            <label>Issue Category *</label>
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleInputChange}
+            >
+              <option value="Other">Other</option>
+              <option value="Pothole">Pothole</option>
+              <option value="Waterlogging">Waterlogging</option>
+              <option value="Broken Streetlight">Broken Streetlight</option>
+              <option value="Road Crack">Road Crack</option>
+              <option value="Missing Signage">Missing Signage</option>
+              <option value="Garbage Dump">Garbage Dump</option>
+            </select>
+            {errors.category && <span className="error">{errors.category}</span>}
+          </div>
+
           <div className="form-group">
             <label>Severity Level *</label>
             <select
@@ -210,7 +246,7 @@ const Upload = () => {
         </form>
 
         <div className="upload-footer">
-          <a href="/dashboard">Back to Dashboard</a>
+          <Link to="/dashboard">Back to Dashboard</Link>
         </div>
       </div>
     </div>

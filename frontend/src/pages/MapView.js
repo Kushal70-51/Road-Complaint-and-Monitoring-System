@@ -9,6 +9,7 @@ const MapView = () => {
   const [loading, setLoading] = useState(true);
   const [searchLocation, setSearchLocation] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchComplaints();
@@ -18,7 +19,7 @@ const MapView = () => {
     if (map && complaints.length > 0) {
       displayMarkers();
     }
-  }, [map, complaints]);
+  }, [map, complaints]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // Initialize map
@@ -40,10 +41,12 @@ const MapView = () => {
   const fetchComplaints = async () => {
     try {
       setLoading(true);
+      setError('');
       const response = await complaintService.getComplaints();
       setComplaints(response.complaints || []);
-    } catch (error) {
-      console.error('Error fetching complaints:', error);
+    } catch (err) {
+      console.error('Error fetching complaints:', err);
+      setError(err.message || 'Failed to load complaints for the map. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -111,6 +114,9 @@ const MapView = () => {
         <h1>Complaint Location Map</h1>
         <p>Visualize complaint locations and track road issues</p>
       </div>
+
+      {error && <div className="alert alert-error">{error}</div>}
+      {loading && <p className="help-text">Loading complaints...</p>}
 
       <div className="map-controls">
         <input

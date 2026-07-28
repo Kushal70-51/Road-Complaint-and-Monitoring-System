@@ -5,6 +5,7 @@ const complaintSchema = new mongoose.Schema({
   image: String,
   location: String,
   description: String,
+  category: { type: String, default: "Other" },
   severity: { type: String, default: "Medium" },
   path: [
     {

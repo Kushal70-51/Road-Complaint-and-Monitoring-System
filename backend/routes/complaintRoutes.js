@@ -5,13 +5,25 @@ const fs = require("fs");
 const Complaint = require("../models/Complaint");
 const authMiddleware = require("../middleware/authMiddleware");
 const User = require("../models/User");
+const { suggestCategoryLimiter } = require("../middleware/rateLimiters");
 
 const router = express.Router();
 
 const cloudinary = require("../config/cloudinary");
 const storage = multer.memoryStorage();
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only JPG, PNG, GIF and WEBP are allowed"));
+    }
+  }
+});
 
 function haversine(lat1, lon1, lat2, lon2) {
   const R = 6371e3;
@@ -28,9 +40,16 @@ function haversine(lat1, lon1, lat2, lon2) {
 }
 
 // Upload a new complaint
-router.post("/upload", authMiddleware, upload.single("image"), async (req, res) => {
+router.post("/upload", authMiddleware, (req, res, next) => {
+  upload.single("image")(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || "Image upload failed" });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
-    const { location, latitude, longitude, lat, lng, path, routePath, description, severity } = req.body;
+    const { location, latitude, longitude, lat, lng, path, routePath, description, severity, category } = req.body;
     const userId = req.user.id;
     let parsedPath = [];
     let parsedRoutePath = [];
@@ -84,12 +103,14 @@ router.post("/upload", authMiddleware, upload.single("image"), async (req, res) 
 
     // only try distance check if we have valid coordinates
     if (hasCoordinates) {
+      const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
       const complaints = await Complaint.find({
+        createdAt: { $gte: sixMonthsAgo },
         $or: [
           { lat: { $ne: null }, lng: { $ne: null } },
           { latitude: { $ne: null }, longitude: { $ne: null } }
         ]
-      });
+      }).select("lat lng latitude longitude");
 
       for (let c of complaints) {
         const complaintLat = typeof c.lat === 'number' ? c.lat : c.latitude;
@@ -131,11 +152,22 @@ router.post("/upload", authMiddleware, upload.single("image"), async (req, res) 
       }
     }
 
+    const validCategories = [
+      "Pothole",
+      "Waterlogging",
+      "Broken Streetlight",
+      "Road Crack",
+      "Missing Signage",
+      "Garbage Dump",
+      "Other"
+    ];
+
     const complaint = await Complaint.create({
       user: userId,
       image: imageUrl,
       location,
       description,
+      category: validCategories.includes(category) ? category : "Other",
       severity: severity || "Medium",
       path: parsedPath,
       routePath: parsedRoutePath,
@@ -236,6 +268,113 @@ router.put("/:id", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(400).json({ error: "Update failed" });
+  }
+});
+
+// AI Categorization endpoint
+router.post("/suggest-category", suggestCategoryLimiter, async (req, res) => {
+  try {
+    const { description, severity } = req.body;
+
+    if (!description || description.trim().length < 10) {
+      return res.status(400).json({ 
+        error: "Description must be at least 10 characters" 
+      });
+    }
+
+    // Call OpenAI API
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content: `You are a road complaint categorization system for Indian cities. Analyze the complaint description and return ONLY a valid JSON object (no markdown, no code blocks) with these exact fields:
+{
+  "category": "One of: Pothole, Waterlogging, Broken Streetlight, Road Crack, Missing Signage, Garbage Dump, Other",
+  "confidence": "A number between 0 and 1 representing confidence level",
+  "reason": "Brief 1-2 sentence explanation of why this category"
+}
+Important: Return ONLY the JSON object, nothing else.`
+          },
+          {
+            role: "user",
+            content: `Severity: ${severity || 'Medium'}. Description: ${description}`
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 200
+      })
+    });
+
+    if (!openaiResponse.ok) {
+      console.error("OpenAI API error:", await openaiResponse.text());
+      // Return default response on API failure
+      return res.json({
+        category: "Other",
+        confidence: 0,
+        reason: "Unable to categorize at this moment. Please select manually."
+      });
+    }
+
+    const openaiData = await openaiResponse.json();
+    const responseText = openaiData.choices[0]?.message?.content || "";
+
+    // Parse the JSON response
+    let parsedResponse;
+    try {
+      // Try to extract JSON from the response
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsedResponse = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error("No JSON found in response");
+      }
+    } catch (parseError) {
+      console.error("JSON parsing error:", parseError);
+      return res.json({
+        category: "Other",
+        confidence: 0,
+        reason: "Could not parse AI response. Please select manually."
+      });
+    }
+
+    // Validate the response structure
+    const validCategories = [
+      "Pothole",
+      "Waterlogging",
+      "Broken Streetlight",
+      "Road Crack",
+      "Missing Signage",
+      "Garbage Dump",
+      "Other"
+    ];
+
+    const category = validCategories.includes(parsedResponse.category) 
+      ? parsedResponse.category 
+      : "Other";
+    
+    const confidence = Math.min(Math.max(Number(parsedResponse.confidence) || 0, 0), 1);
+    const reason = parsedResponse.reason || "AI categorization complete.";
+
+    res.json({
+      category,
+      confidence,
+      reason
+    });
+
+  } catch (error) {
+    console.error("Categorization error:", error);
+    res.json({
+      category: "Other",
+      confidence: 0,
+      reason: "Error in AI processing. Please select manually."
+    });
   }
 });
 
