@@ -1816,11 +1816,21 @@ table tbody tr:last-child td { border-bottom: none; }
   border: 1px solid rgba(42,143,111,0.08);
 }
 
+.upload-header {
+  text-align: center;
+  margin-bottom: 1.6rem;
+}
+
 .upload-container h1 {
   color: var(--primary);
   font-size: 1.8rem;
   margin-bottom: 0.5rem;
   font-weight: 800;
+}
+
+.upload-header p {
+  color: var(--gray-600);
+  font-size: 0.93rem;
 }
 
 /* ========================================
@@ -1830,6 +1840,63 @@ table tbody tr:last-child td { border-bottom: none; }
   background: linear-gradient(135deg, rgba(240,248,246,0.3) 0%, rgba(255,255,255,1) 100%);
   padding: 2.5rem 1rem;
   min-height: calc(100vh - 300px);
+}
+
+.profile-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.profile-header-avatar {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: 800;
+  box-shadow: 0 8px 20px rgba(42,143,111,0.3);
+}
+
+.profile-header h1 {
+  color: var(--primary);
+  font-size: 1.8rem;
+  margin-bottom: 0.4rem;
+  font-weight: 800;
+}
+
+.profile-header p {
+  color: var(--gray-600);
+  font-size: 0.93rem;
+}
+
+.profile-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.6rem;
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.profile-footer {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 1.6rem;
+  border-top: 2px solid var(--gray-100);
+}
+
+.profile-footer a {
+  color: var(--primary);
+  font-weight: 600;
 }
 
 .profile-container {
@@ -1902,6 +1969,78 @@ table tbody tr:last-child td { border-bottom: none; }
   background: linear-gradient(135deg, rgba(240,248,246,0.3) 0%, rgba(255,255,255,1) 100%);
   padding: 2rem 1.5rem;
   min-height: calc(100vh - 300px);
+}
+
+.map-header {
+  text-align: center;
+  margin-bottom: 1.4rem;
+}
+
+.stats-header {
+  text-align: center;
+  margin-bottom: 1.8rem;
+}
+
+.stats-header h1 {
+  color: var(--primary);
+  font-size: 1.9rem;
+  margin-bottom: 0.4rem;
+  font-weight: 800;
+}
+
+.stats-header p {
+  color: var(--gray-600);
+  font-size: 0.95rem;
+}
+
+.stats-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.map-header h1 {
+  color: var(--primary);
+  font-size: 1.9rem;
+  margin-bottom: 0.4rem;
+  font-weight: 800;
+}
+
+.map-header p {
+  color: var(--gray-600);
+  font-size: 0.95rem;
+}
+
+.map-controls {
+  background: var(--white);
+  padding: 1.2rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  margin: 0 auto 1.4rem;
+  max-width: 1100px;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.map-controls input {
+  flex: 1 1 240px;
+}
+
+.map-controls select {
+  flex: 0 1 180px;
+}
+
+#map, #complaint-map {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.map-legend {
+  max-width: 1100px;
+  margin: 1rem auto 0;
 }
 
 .page-container, .about-container, .help-container, .contact-container {
@@ -2001,6 +2140,196 @@ table tbody tr:last-child td { border-bottom: none; }
 }
 
 /* ========================================
+   AUTH ICON BADGE
+   ======================================== */
+.auth-icon-badge {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.1rem;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
+  box-shadow: 0 8px 20px rgba(42,143,111,0.3);
+}
+
+/* ========================================
+   PAGE HEADER ICON (About / Help / Contact)
+   ======================================== */
+.page-header-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
+  box-shadow: 0 8px 20px rgba(42,143,111,0.3);
+}
+
+/* ========================================
+   ABOUT PAGE - FEATURE CARDS
+   ======================================== */
+.about-section {
+  margin-bottom: 2.4rem;
+}
+
+.about-section:last-child {
+  margin-bottom: 0;
+}
+
+.about-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.9rem;
+}
+
+.about-section-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.about-section h2 {
+  color: var(--primary);
+  font-size: 1.35rem;
+  margin: 0;
+}
+
+.about-section > p {
+  color: var(--gray-700);
+  line-height: 1.75;
+}
+
+.about-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.about-feature-card {
+  background: var(--primary-light);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 1.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  font-size: 0.93rem;
+  transition: transform var(--transition);
+}
+
+.about-feature-card:hover {
+  transform: translateY(-3px);
+}
+
+.about-feature-card span {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.about-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: about-step;
+}
+
+.about-steps li {
+  counter-increment: about-step;
+  display: flex;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--gray-100);
+  color: var(--gray-700);
+  line-height: 1.6;
+}
+
+.about-steps li:last-child {
+  border-bottom: none;
+}
+
+.about-steps li::before {
+  content: counter(about-step);
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* ========================================
+   CONTACT PAGE
+   ======================================== */
+.contact-container {
+  max-width: 1100px;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 2.5rem;
+}
+
+.contact-form-section h2,
+.contact-info-section h2 {
+  color: var(--primary);
+  font-size: 1.3rem;
+  margin-bottom: 1.4rem;
+}
+
+.contact-info-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: var(--primary-light);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 1.3rem;
+  margin-bottom: 1rem;
+}
+
+.contact-info-card:last-child {
+  margin-bottom: 0;
+}
+
+.contact-info-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.contact-info-card h3 {
+  color: var(--primary-dark);
+  font-size: 0.95rem;
+  margin-bottom: 0.3rem;
+}
+
+.contact-info-card p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--gray-700);
+  line-height: 1.5;
+}
+
+.contact-info-card a {
+  color: var(--gray-700);
+}
+
+.contact-info-card a:hover {
+  color: var(--primary);
+}
+
+/* ========================================
    MAP
    ======================================== */
 #map, #complaint-map {
@@ -2055,6 +2384,12 @@ table tbody tr:last-child td { border-bottom: none; }
   text-align: center;
   position: relative;
   overflow: hidden;
+}
+
+/* Inside an already-padded page card (Help, etc.) the CTA doesn't need its own side margin */
+.help-container .home-cta,
+.about-container .home-cta {
+  margin: 2.5rem 0 0;
 }
 
 .home-cta::before {
@@ -2435,6 +2770,7 @@ footer::before {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .complaints-grid { grid-template-columns: 1fr; }
   .detail-grid { grid-template-columns: 1fr; }
+  .contact-grid { grid-template-columns: 1fr; gap: 2rem; }
   .complaint-detail-page { padding: 1.2rem 1rem 2rem; }
   .detail-hero { padding: 1.4rem; }
 

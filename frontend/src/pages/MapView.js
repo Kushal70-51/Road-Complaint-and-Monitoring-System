@@ -111,6 +111,7 @@ const MapView = () => {
   return (
     <div className="map-page">
       <div className="map-header">
+        <div className="page-header-icon">🗺️</div>
         <h1>Complaint Location Map</h1>
         <p>Visualize complaint locations and track road issues</p>
       </div>

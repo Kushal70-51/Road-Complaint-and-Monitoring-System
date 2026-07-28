@@ -56,6 +56,7 @@ const ResetPassword = () => {
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-header">
+          <div className="auth-icon-badge">🔒</div>
           <h1>Reset Password</h1>
           <p>Create a new password for your account</p>
         </div>

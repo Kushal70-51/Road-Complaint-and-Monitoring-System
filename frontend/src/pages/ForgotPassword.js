@@ -34,6 +34,7 @@ const ForgotPassword = () => {
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-header">
+          <div className="auth-icon-badge">🔓</div>
           <h1>Forgot Password</h1>
           <p>Reset your account password</p>
         </div>

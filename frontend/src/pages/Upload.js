@@ -143,6 +143,7 @@ const Upload = () => {
     <div className="upload-page">
       <div className="upload-container">
         <div className="upload-header">
+          <div className="auth-icon-badge">📷</div>
           <h1>Submit Road Complaint</h1>
           <p>Report a road infrastructure issue in your area</p>
         </div>

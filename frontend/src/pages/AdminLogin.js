@@ -36,6 +36,7 @@ const AdminLogin = () => {
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-header">
+          <div className="auth-icon-badge">🛡️</div>
           <h1>Admin Login</h1>
           <p>Access the administrative control panel</p>
         </div>

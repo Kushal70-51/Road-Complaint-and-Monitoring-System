@@ -46,92 +46,108 @@ const Contact = () => {
   return (
     <div className="contact-page">
       <div className="page-header">
+        <div className="page-header-icon">✉️</div>
         <h1>Contact Us</h1>
         <p>Have questions? We'd love to hear from you</p>
       </div>
 
       <div className="contact-container">
-        <div className="contact-form-section">
-          <h2>Send us a Message</h2>
-          {submitted && <div className="alert alert-success">Message sent successfully!</div>}
-          {error && <div className="alert alert-error">{error}</div>}
+        <div className="contact-grid">
+          <div className="contact-form-section">
+            <h2>Send us a Message</h2>
+            {submitted && <div className="alert alert-success">Message sent successfully!</div>}
+            {error && <div className="alert alert-error">{error}</div>}
 
-          <form onSubmit={handleSubmit} className="contact-form">
-            <div className="form-group">
-              <label>Name *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
+            <form onSubmit={handleSubmit} className="contact-form">
+              <div className="form-group">
+                <label>Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
-            <div className="form-group">
-              <label>Email *</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
-            </div>
+              <div className="form-group">
+                <label>Email *</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
-            <div className="form-group">
-              <label>Subject *</label>
-              <input
-                type="text"
-                name="subject"
-                value={formData.subject}
-                onChange={handleChange}
-                required
-              />
-            </div>
+              <div className="form-group">
+                <label>Subject *</label>
+                <input
+                  type="text"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
-            <div className="form-group">
-              <label>Message *</label>
-              <textarea
-                name="message"
-                value={formData.message}
-                onChange={handleChange}
-                rows="5"
-                required
-              />
-            </div>
+              <div className="form-group">
+                <label>Message *</label>
+                <textarea
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  rows="5"
+                  required
+                />
+              </div>
 
-            <button type="submit" disabled={loading} className="btn btn-primary">
-              {loading ? 'Sending...' : 'Send Message'}
-            </button>
-          </form>
-        </div>
-
-        <div className="contact-info-section">
-          <h2>Contact Information</h2>
-          <div className="contact-info">
-            <h3>📧 Email</h3>
-            <p><a href="mailto:support@roadcomplaintsystem.gov.in">support@roadcomplaintsystem.gov.in</a></p>
+              <button type="submit" disabled={loading} className="btn btn-primary">
+                {loading ? 'Sending...' : 'Send Message'}
+              </button>
+            </form>
           </div>
 
-          <div className="contact-info">
-            <h3>📞 Phone</h3>
-            <p><a href="tel:+91-11-23059088">+91-11-23059088</a></p>
-            <p><a href="tel:1800-11-6374">1800-11-6374 (Toll Free)</a></p>
-          </div>
+          <div className="contact-info-section">
+            <h2>Contact Information</h2>
 
-          <div className="contact-info">
-            <h3>🏢 Address</h3>
-            <p>Ministry of Road Transport & Highways<br/>
-            Government of India<br/>
-            New Delhi</p>
-          </div>
+            <div className="contact-info-card">
+              <span className="contact-info-icon">📧</span>
+              <div>
+                <h3>Email</h3>
+                <p><a href="mailto:support@roadcomplaintsystem.gov.in">support@roadcomplaintsystem.gov.in</a></p>
+              </div>
+            </div>
 
-          <div className="contact-info">
-            <h3>⏰ Office Hours</h3>
-            <p>Monday - Friday: 9:00 AM - 6:00 PM<br/>
-            Saturday: 9:00 AM - 1:00 PM<br/>
-            Sunday & Holidays: Closed</p>
+            <div className="contact-info-card">
+              <span className="contact-info-icon">📞</span>
+              <div>
+                <h3>Phone</h3>
+                <p><a href="tel:+91-11-23059088">+91-11-23059088</a></p>
+                <p><a href="tel:1800-11-6374">1800-11-6374 (Toll Free)</a></p>
+              </div>
+            </div>
+
+            <div className="contact-info-card">
+              <span className="contact-info-icon">🏢</span>
+              <div>
+                <h3>Address</h3>
+                <p>Ministry of Road Transport & Highways<br/>
+                Government of India<br/>
+                New Delhi</p>
+              </div>
+            </div>
+
+            <div className="contact-info-card">
+              <span className="contact-info-icon">⏰</span>
+              <div>
+                <h3>Office Hours</h3>
+                <p>Monday - Friday: 9:00 AM - 6:00 PM<br/>
+                Saturday: 9:00 AM - 1:00 PM<br/>
+                Sunday & Holidays: Closed</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

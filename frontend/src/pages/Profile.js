@@ -48,12 +48,23 @@ const Profile = () => {
     }
   };
 
+  const initials = (user?.name || '?')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase())
+    .join('');
+
   return (
     <div className="profile-page">
       <div className="profile-container">
         <div className="profile-header">
+          <div className="profile-header-avatar">{initials || '?'}</div>
           <h1>My Profile</h1>
           <p>Update your account information</p>
+          {user?.isVerified && (
+            <div className="profile-verified-badge">✓ Verified Account</div>
+          )}
         </div>
 
         {message.text && (
@@ -62,7 +73,7 @@ const Profile = () => {
 
         <form onSubmit={handleSubmit} className="profile-form">
           <div className="form-group">
-            <label>Full Name</label>
+            <label>👤 Full Name</label>
             <input
               type="text"
               name="name"
@@ -72,7 +83,7 @@ const Profile = () => {
           </div>
 
           <div className="form-group">
-            <label>Mobile Number (Read-Only)</label>
+            <label>📱 Mobile Number (Read-Only)</label>
             <input
               type="text"
               value={formData.mobile}
@@ -82,7 +93,7 @@ const Profile = () => {
           </div>
 
           <div className="form-group">
-            <label>Email Address</label>
+            <label>✉️ Email Address</label>
             <input
               type="text"
               value={formData.email}
@@ -91,7 +102,7 @@ const Profile = () => {
           </div>
 
           <div className="form-group">
-            <label>Village / Area</label>
+            <label>🏘️ Village / Area</label>
             <input
               type="text"
               name="village"

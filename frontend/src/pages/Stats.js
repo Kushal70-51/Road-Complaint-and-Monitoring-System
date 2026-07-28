@@ -82,6 +82,7 @@ const Stats = () => {
   return (
     <div className="stats-page">
       <div className="stats-header">
+        <div className="page-header-icon">📊</div>
         <h1>My Complaint Statistics</h1>
         <p>Overview of your complaint activity</p>
       </div>

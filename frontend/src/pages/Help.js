@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Help = () => {
   const [expanded, setExpanded] = React.useState({});
@@ -43,6 +44,7 @@ const Help = () => {
   return (
     <div className="help-page">
       <div className="page-header">
+        <div className="page-header-icon">💬</div>
         <h1>Help & Support</h1>
         <p>Find answers to frequently asked questions</p>
       </div>
@@ -52,22 +54,23 @@ const Help = () => {
           <h2>Frequently Asked Questions</h2>
           <div className="faq-list">
             {faqs.map(faq => (
-              <div key={faq.id} className="faq-item">
+              <div key={faq.id} className={`faq-item ${expanded[faq.id] ? 'open' : ''}`}>
                 <h3 onClick={() => toggleFAQ(faq.id)} className="faq-question">
                   {faq.question}
                   <span className="faq-toggle">{expanded[faq.id] ? '−' : '+'}</span>
                 </h3>
-                {expanded[faq.id] && (
-                  <p className="faq-answer">{faq.answer}</p>
-                )}
+                <p className="faq-answer">{faq.answer}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="help-section">
-          <h2>Still Need Help?</h2>
-          <p>Our support team is ready to assist you. Please <a href="/contact">contact us</a> for any further assistance.</p>
+        <section className="home-cta">
+          <div className="home-cta-inner">
+            <h2>Still Need Help?</h2>
+            <p>Our support team is ready to assist you with anything not covered above.</p>
+            <Link to="/contact" className="btn btn-primary btn-large">📩 Contact Us</Link>
+          </div>
         </section>
       </div>
     </div>

@@ -170,6 +170,7 @@ const Register = () => {
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-header">
+          <div className="auth-icon-badge">📝</div>
           <h1>Create Your Account</h1>
           <p>Join the citizen complaint system today</p>
         </div>
