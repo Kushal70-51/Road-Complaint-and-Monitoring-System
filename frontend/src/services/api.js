@@ -333,11 +333,11 @@ export const contactService = {
 
 // Chat Service
 export const chatService = {
-  sendMessage: async (message) => {
+  sendMessage: async (message, history = []) => {
     const response = await fetch(`${API_BASE_URL}/chat/message`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }, // no auth required for assistant
-      body: JSON.stringify({ message })
+      body: JSON.stringify({ message, history })
     });
     return handleResponse(response);
   }

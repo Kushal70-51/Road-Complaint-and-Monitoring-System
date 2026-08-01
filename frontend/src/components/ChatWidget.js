@@ -19,12 +19,13 @@ const ChatWidget = () => {
 
     // Add user message
     const userMessage = { id: Date.now(), text: inputValue, isBot: false };
+    const history = messages.map(({ text, isBot }) => ({ text, isBot }));
     setMessages([...messages, userMessage]);
     setInputValue('');
     setIsLoading(true);
 
     try {
-      const response = await chatService.sendMessage(inputValue);
+      const response = await chatService.sendMessage(inputValue, history);
       const botText = response.reply || 'Sorry, I could not understand the answer.';
       const botMessage = { id: Date.now(), text: botText, isBot: true };
       setMessages(prev => [...prev, botMessage]);

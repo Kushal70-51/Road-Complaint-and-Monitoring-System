@@ -1,4 +1,4 @@
-/* color theme: matches the main app's teal palette (var(--primary)), white, light gray (#f4f4f4) */
+/* color theme: matches the main app's light-blue palette (var(--primary)), white, light gray (#f4f4f4) */
 .admin-dashboard {
   padding: 2rem;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -10,11 +10,11 @@
   display: flex;
   align-items: center;
   gap: 2rem;
-  background: var(--gradient-primary, linear-gradient(135deg, #2a8f6f 0%, #1f6c53 100%));
+  background: var(--gradient-primary, linear-gradient(135deg, #2196c9 0%, #14719e 100%));
   color: #fff;
   padding: 2rem;
   border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(42, 143, 111, 0.25);
+  box-shadow: 0 4px 15px rgba(33, 150, 201, 0.25);
   margin-bottom: 2rem;
 }
 
@@ -117,12 +117,12 @@
   height: 72px;
   border-radius: 50%;
   overflow: hidden;
-  background: var(--primary-lighter, #e8f3f0);
+  background: var(--primary-lighter, #dcedf7);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 2px solid var(--primary-lighter, #e8f3f0);
+  border: 2px solid var(--primary-lighter, #dcedf7);
 }
 
 .avatar-upload-preview img {
@@ -132,7 +132,7 @@
 }
 
 .avatar-upload-preview .profile-icon {
-  color: var(--primary, #2a8f6f);
+  color: var(--primary, #2196c9);
 }
 
 .role-text {
@@ -157,7 +157,7 @@
 .top-text h1 {
   margin: 0;
   font-size: 2rem;
-  color: var(--primary, #2a8f6f);
+  color: var(--primary, #2196c9);
 }
 
 .top-text p {
@@ -183,7 +183,7 @@
 
 .admin-quick-actions h3 {
   margin: 0 0 1rem;
-  color: var(--primary, #2a8f6f);
+  color: var(--primary, #2196c9);
 }
 
 .admin-quick-actions-hint {
@@ -218,12 +218,12 @@
 }
 
 .btn-primary {
-  background: var(--gradient-primary, #2a8f6f);
+  background: var(--gradient-primary, #2196c9);
   color: #fff;
 }
 
 .btn-primary:hover {
-  background: var(--primary-dark, #1f6c53);
+  background: var(--primary-dark, #14719e);
 }
 
 .complaints-section {
@@ -301,7 +301,7 @@
 }
 
 .view-complaints-button .btn-primary {
-  background: var(--gradient-primary, #2a8f6f);
+  background: var(--gradient-primary, #2196c9);
   color: #fff;
   padding: 0.7rem 1.4rem;
   border-radius: 4px;
@@ -310,7 +310,7 @@
 }
 
 .view-complaints-button .btn-primary:hover {
-  background: var(--primary-dark, #1f6c53);
+  background: var(--primary-dark, #14719e);
 }
 
 .badge-pending {
@@ -465,7 +465,7 @@
   align-items: center;
   padding: 1.5rem;
   border-bottom: 1px solid #f0f0f0;
-  background: var(--gradient-primary, linear-gradient(135deg, #2a8f6f 0%, #1f6c53 100%));
+  background: var(--gradient-primary, linear-gradient(135deg, #2196c9 0%, #14719e 100%));
   color: #fff;
 }
 
@@ -531,8 +531,8 @@
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: var(--primary, #2a8f6f);
-  box-shadow: 0 0 0 3px rgba(42, 143, 111, 0.15);
+  border-color: var(--primary, #2196c9);
+  box-shadow: 0 0 0 3px rgba(33, 150, 201, 0.15);
 }
 
 .form-row {
@@ -561,7 +561,7 @@
 
 .create-admin-section h3 {
   margin-top: 0;
-  color: var(--primary, #2a8f6f);
+  color: var(--primary, #2196c9);
 }
 
 .create-admin-form {
@@ -569,7 +569,7 @@
 }
 
 .admins-list-section h3 {
-  color: var(--primary, #2a8f6f);
+  color: var(--primary, #2196c9);
   margin-bottom: 1rem;
 }
 
@@ -604,7 +604,7 @@
 .role-badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;
-  background: var(--gradient-primary, #2a8f6f);
+  background: var(--gradient-primary, #2196c9);
   color: #fff;
   border-radius: 20px;
   font-size: 0.85rem;

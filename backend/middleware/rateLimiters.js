@@ -25,4 +25,12 @@ const suggestCategoryLimiter = rateLimit({
   message: { error: "Too many requests. Please slow down." }
 });
 
-module.exports = { loginLimiter, createAdminLimiter, suggestCategoryLimiter };
+const chatLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many messages. Please slow down." }
+});
+
+module.exports = { loginLimiter, createAdminLimiter, suggestCategoryLimiter, chatLimiter };
